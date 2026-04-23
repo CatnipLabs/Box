@@ -24,7 +24,7 @@ export class Logger {
     this.loggerOptions = result.data;
   }
 
-  private getForegroundColor(level: Levels) {
+  public getForegroundColor(level: Levels) {
     switch (level) {
       case Levels.ERROR:
         return ForegroundColors.RED;
@@ -41,22 +41,22 @@ export class Logger {
     }
   }
 
-  private getFormatedName() {
+  public getFormatedName() {
     if (!this.loggerOptions.name) return "";
     return `${BackgroundColors.RESET}${ForegroundColors.WHITE}[${BackgroundColors.RESET}${ForegroundColors.BLUE}${this.loggerOptions.name}${BackgroundColors.RESET}${ForegroundColors.WHITE}]${BackgroundColors.RESET} `;
   }
 
-  private getFormatedLevel(level: Levels) {
+  public getFormatedLevel(level: Levels) {
     const color = this.getForegroundColor(level);
     return `${BackgroundColors.RESET}${ForegroundColors.WHITE}[${BackgroundColors.RESET}${color}${level}${BackgroundColors.RESET}${ForegroundColors.WHITE}]${BackgroundColors.RESET}`;
   }
 
-  private getFormatedTime() {
+  public getFormatedTime() {
     const time = new Date().toISOString();
     return `${BackgroundColors.RESET}${ForegroundColors.WHITE}[${ForegroundColors.GRAY}${time}${BackgroundColors.RESET}${ForegroundColors.WHITE}]${BackgroundColors.RESET}`;
   }
 
-  private format(level: Levels, message: unknown) {
+  public format(level: Levels, message: unknown) {
     return `${this.getFormatedName()} ${this.getFormatedLevel(level)} ${this.getFormatedTime()}: ${message}`;
   }
 
@@ -78,5 +78,9 @@ export class Logger {
 
   public trace(message: unknown) {
     console.log(this.format(Levels.TRACE, message));
+  }
+
+  public getServiceName(): string {
+    return this.loggerOptions.name || "";
   }
 }

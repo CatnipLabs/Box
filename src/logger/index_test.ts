@@ -11,74 +11,77 @@ function makeLogger(name?: string) {
   return new Logger({ name, level: Levels.DEBUG });
 }
 
-function priv(logger: Logger): any {
-  return logger as any;
-}
+Deno.test(
+  "Logger - constructor: instancia com opções válidas (com name)",
+  () => {
+    const logger = new Logger({ name: "MyService", level: Levels.DEBUG });
+    assertEquals(logger.getServiceName(), "MyService");
+  },
+);
 
-Deno.test("Logger - constructor: instancia com opções válidas (com name)", () => {
-  const logger = new Logger({ name: "MyService", level: Levels.DEBUG });
-  assertEquals(priv(logger).loggerOptions.name, "MyService");
-});
+Deno.test(
+  "Logger - constructor: instancia com opções válidas (sem name)",
+  () => {
+    const logger = new Logger({ level: Levels.INFO });
+    assertEquals(typeof logger.getServiceName(), "string");
+  },
+);
 
-Deno.test("Logger - constructor: instancia com opções válidas (sem name)", () => {
-  const logger = new Logger({ level: Levels.INFO });
-  assertEquals(typeof priv(logger).loggerOptions, "object");
-});
-
-
-Deno.test("Logger - constructor: lança erro quando argumento é null/undefined", () => {
-  assertThrows(
-    () => new Logger(null as unknown as LoggerConstructorOptions),
-    Error,
-  );
-});
-
+Deno.test(
+  "Logger - constructor: lança erro quando argumento é null/undefined",
+  () => {
+    assertThrows(
+      () => new Logger(null as unknown as LoggerConstructorOptions),
+      Error,
+    );
+  },
+);
 
 Deno.test("getForegroundColor: ERROR → RED", () => {
   const logger = makeLogger();
-  assertEquals(priv(logger).getForegroundColor(Levels.ERROR), ForegroundColors.RED);
+  assertEquals(logger.getForegroundColor(Levels.ERROR), ForegroundColors.RED);
 });
 
 Deno.test("getForegroundColor: WARN → YELLOW", () => {
   const logger = makeLogger();
-  assertEquals(priv(logger).getForegroundColor(Levels.WARN), ForegroundColors.YELLOW);
+  assertEquals(logger.getForegroundColor(Levels.WARN), ForegroundColors.YELLOW);
 });
 
 Deno.test("getForegroundColor: INFO → GREEN", () => {
   const logger = makeLogger();
-  assertEquals(priv(logger).getForegroundColor(Levels.INFO), ForegroundColors.GREEN);
+  assertEquals(logger.getForegroundColor(Levels.INFO), ForegroundColors.GREEN);
 });
 
 Deno.test("getForegroundColor: DEBUG → CYAN", () => {
   const logger = makeLogger();
-  assertEquals(priv(logger).getForegroundColor(Levels.DEBUG), ForegroundColors.CYAN);
+  assertEquals(logger.getForegroundColor(Levels.DEBUG), ForegroundColors.CYAN);
 });
 
 Deno.test("getForegroundColor: TRACE → GRAY", () => {
   const logger = makeLogger();
-  assertEquals(priv(logger).getForegroundColor(Levels.TRACE), ForegroundColors.GRAY);
+  assertEquals(logger.getForegroundColor(Levels.TRACE), ForegroundColors.GRAY);
 });
 
 Deno.test("getForegroundColor: valor desconhecido → WHITE (default)", () => {
   const logger = makeLogger();
-  const color = priv(logger).getForegroundColor("UNKNOWN_LEVEL" as unknown as Levels);
+  const color = logger.getForegroundColor("UNKNOWN_LEVEL" as unknown as Levels);
   assertEquals(color, ForegroundColors.WHITE);
 });
 
 Deno.test("getFormatedName: sem name retorna string vazia", () => {
   const logger = makeLogger();
-  assertEquals(priv(logger).getFormatedName(), "");
+  assertEquals(logger.getFormatedName(), "");
 });
 
 Deno.test("getFormatedName: com name contém o nome na string", () => {
   const logger = makeLogger("API");
-  const result: string = priv(logger).getFormatedName();
+  const result: string = logger.getFormatedName();
   assertEquals(result.includes("API"), true);
 });
 
 Deno.test("getFormatedName: com name inclui colchetes e cores de reset", () => {
   const logger = makeLogger("SVC");
-  const result: string = priv(logger).getFormatedName();
+  const result: string = logger.getFormatedName();
   assertEquals(result.includes("["), true);
   assertEquals(result.includes("]"), true);
   assertEquals(result.includes(BackgroundColors.RESET), true);
@@ -87,33 +90,32 @@ Deno.test("getFormatedName: com name inclui colchetes e cores de reset", () => {
 
 Deno.test("getFormatedLevel: contém o label do nível", () => {
   const logger = makeLogger();
-  const result: string = priv(logger).getFormatedLevel(Levels.INFO);
+  const result: string = logger.getFormatedLevel(Levels.INFO);
   assertEquals(result.includes(String(Levels.INFO)), true);
 });
 
 Deno.test("getFormatedLevel: contém a cor correta para ERROR", () => {
   const logger = makeLogger();
-  const result: string = priv(logger).getFormatedLevel(Levels.ERROR);
+  const result: string = logger.getFormatedLevel(Levels.ERROR);
   assertEquals(result.includes(ForegroundColors.RED), true);
 });
 
 Deno.test("getFormatedLevel: contém colchetes e reset", () => {
   const logger = makeLogger();
-  const result: string = priv(logger).getFormatedLevel(Levels.DEBUG);
+  const result: string = logger.getFormatedLevel(Levels.DEBUG);
   assertEquals(result.includes("["), true);
   assertEquals(result.includes(BackgroundColors.RESET), true);
 });
 
 Deno.test("getFormatedTime: retorna string com timestamp ISO-8601", () => {
   const logger = makeLogger();
-  const result: string = priv(logger).getFormatedTime();
-  // Verifica que há um trecho parecido com ISO date (yyyy-mm-dd)
+  const result: string = logger.getFormatedTime();
   assertMatch(result, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 });
 
 Deno.test("getFormatedTime: contém GRAY e colchetes", () => {
   const logger = makeLogger();
-  const result: string = priv(logger).getFormatedTime();
+  const result: string = logger.getFormatedTime();
   assertEquals(result.includes(ForegroundColors.GRAY), true);
   assertEquals(result.includes("["), true);
   assertEquals(result.includes("]"), true);
@@ -121,23 +123,26 @@ Deno.test("getFormatedTime: contém GRAY e colchetes", () => {
 
 Deno.test("format: inclui nível, timestamp e mensagem", () => {
   const logger = makeLogger("FMT");
-  const result: string = priv(logger).format(Levels.INFO, "hello");
+  const result: string = logger.format(Levels.INFO, "hello");
   assertEquals(result.includes(String(Levels.INFO)), true);
   assertEquals(result.includes("hello"), true);
   assertMatch(result, /\d{4}-\d{2}-\d{2}/);
 });
 
-Deno.test("format: quando sem name o resultado não possui string vazia duplicada estranha", () => {
-  const logger = makeLogger();
-  const result: string = priv(logger).format(Levels.WARN, "msg");
-  assertEquals(result.includes("msg"), true);
-  assertEquals(result.includes(String(Levels.WARN)), true);
-});
+Deno.test(
+  "format: quando sem name o resultado não possui string vazia duplicada estranha",
+  () => {
+    const logger = makeLogger();
+    const result: string = logger.format(Levels.WARN, "msg");
+    assertEquals(result.includes("msg"), true);
+    assertEquals(result.includes(String(Levels.WARN)), true);
+  },
+);
 
 Deno.test("format: message pode ser objeto", () => {
   const logger = makeLogger();
   const obj = { key: "value" };
-  const result: string = priv(logger).format(Levels.DEBUG, obj);
+  const result: string = logger.format(Levels.DEBUG, obj);
   assertEquals(result.includes("[object Object]"), true);
 });
 
