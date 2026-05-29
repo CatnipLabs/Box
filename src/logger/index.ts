@@ -15,7 +15,7 @@ export class Logger {
   ) {
     const result = LoggerConstructorSchema.safeParse(loggerConstructorOptions);
 
-    if (!result.success || !result.data) {
+    if (!result.success) {
       throw new Error(
         "Invalid logger constructor options: " + JSON.stringify(result.error),
       );
@@ -24,7 +24,7 @@ export class Logger {
     this.loggerOptions = result.data;
   }
 
-  public getForegroundColor(level: Levels) {
+  public getForegroundColor(level: Levels): ForegroundColors {
     switch (level) {
       case Levels.ERROR:
         return ForegroundColors.RED;
@@ -41,42 +41,44 @@ export class Logger {
     }
   }
 
-  public getFormatedName() {
+  public getFormatedName(): string {
     if (!this.loggerOptions.name) return "";
     return `${BackgroundColors.RESET}${ForegroundColors.WHITE}[${BackgroundColors.RESET}${ForegroundColors.BLUE}${this.loggerOptions.name}${BackgroundColors.RESET}${ForegroundColors.WHITE}]${BackgroundColors.RESET} `;
   }
 
-  public getFormatedLevel(level: Levels) {
+  public getFormatedLevel(level: Levels): string {
     const color = this.getForegroundColor(level);
     return `${BackgroundColors.RESET}${ForegroundColors.WHITE}[${BackgroundColors.RESET}${color}${level}${BackgroundColors.RESET}${ForegroundColors.WHITE}]${BackgroundColors.RESET}`;
   }
 
-  public getFormatedTime() {
+  public getFormatedTime(): string {
     const time = new Date().toISOString();
     return `${BackgroundColors.RESET}${ForegroundColors.WHITE}[${ForegroundColors.GRAY}${time}${BackgroundColors.RESET}${ForegroundColors.WHITE}]${BackgroundColors.RESET}`;
   }
 
-  public format(level: Levels, message: unknown) {
-    return `${this.getFormatedName()} ${this.getFormatedLevel(level)} ${this.getFormatedTime()}: ${message}`;
+  public format(level: Levels, message: unknown): string {
+    return `${this.getFormatedName()} ${
+      this.getFormatedLevel(level)
+    } ${this.getFormatedTime()}: ${message}`;
   }
 
-  public info(message: unknown) {
+  public info(message: unknown): void {
     console.log(this.format(Levels.INFO, message));
   }
 
-  public warn(message: unknown) {
+  public warn(message: unknown): void {
     console.warn(this.format(Levels.WARN, message));
   }
 
-  public error(message: unknown) {
+  public error(message: unknown): void {
     console.error(this.format(Levels.ERROR, message));
   }
 
-  public debug(message: unknown) {
+  public debug(message: unknown): void {
     console.debug(this.format(Levels.DEBUG, message));
   }
 
-  public trace(message: unknown) {
+  public trace(message: unknown): void {
     console.log(this.format(Levels.TRACE, message));
   }
 

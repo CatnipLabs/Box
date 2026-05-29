@@ -11,8 +11,7 @@
     "jsr:@std/internal@^1.0.13": "1.0.13",
     "jsr:@std/path@^1.1.4": "1.1.4",
     "jsr:@std/testing@*": "1.0.18",
-    "jsr:@std/testing@^1.0.18": "1.0.18",
-    "npm:zod@^4.3.6": "4.3.6"
+    "jsr:@std/testing@^1.0.18": "1.0.18"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -57,16 +56,10 @@
       ]
     }
   },
-  "npm": {
-    "zod@4.3.6": {
-      "integrity": "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="
-    }
-  },
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
-      "jsr:@std/testing@^1.0.18",
-      "npm:zod@^4.3.6"
+      "jsr:@std/testing@^1.0.18"
     ]
   }
 }

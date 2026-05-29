@@ -1,5 +1,5 @@
-import { assertEquals, assertThrows, assertMatch } from "@std/assert";
-import { stub, assertSpyCalls } from "@std/testing/mock";
+import { assertEquals, assertMatch, assertThrows } from "@std/assert";
+import { assertSpyCalls, stub } from "@std/testing/mock";
 
 import { Logger } from "./index.ts";
 import { Levels } from "./levels.enum.ts";
