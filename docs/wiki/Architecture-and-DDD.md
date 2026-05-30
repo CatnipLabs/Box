@@ -18,12 +18,12 @@ infra/         -> persistence, runtime, logger, and concrete adapters
 Controller -> Service -> Repository -> Entity
 ```
 
-- Controller handles HTTP.
+- Controller handles HTTP routing and receives validated input objects.
 - Service centralizes application/domain rules.
 - Repository persists and queries entities.
 - Entity represents the domain.
 
-## Base classes
+## Base classes and decorators
 
 ### Entity
 
@@ -31,7 +31,7 @@ Every domain entity must extend `Box.Entity`.
 
 ```ts
 class User extends Box.Entity<string> {
-  constructor(id: string, public readonly name: string) {
+  public constructor(id: string, public readonly name: string) {
     super(id);
   }
 }
@@ -39,59 +39,64 @@ class User extends Box.Entity<string> {
 
 ### Repository
 
-Repositories must declare the entity they handle.
+Repositories are decorated with `@Box.Repository()` and can still extend
+`Box.Repository<TEntity>` when they need the base entity validation behavior.
 
 ```ts
+@Box.Repository()
 class UsersRepository extends Box.Repository<User> {
-  constructor() {
+  public constructor() {
     super(User);
   }
 }
 ```
 
-This forces framework users to associate persistence with a real domain entity.
-
 ### Service
 
-Services extend `Box.Service` and are the recommended place for application
-rules.
+Services are decorated with `@Box.Service()` and declare constructor
+dependencies explicitly.
 
 ```ts
-class UsersService extends Box.Service {
-  constructor(private readonly users: UsersRepository) {
-    super();
-  }
+@Box.Service({ deps: [UsersRepository] })
+class UsersService {
+  public constructor(private readonly users: UsersRepository) {}
 }
 ```
 
 ### Controller
 
-Controllers extend `Box.Controller`, declare `path`, and return routes
-explicitly.
+Controllers use decorators to bind HTTP methods to class methods. By default,
+`UsersController` can be mounted at `/users` by convention, but explicit
+prefixes are recommended when they improve readability.
 
 ```ts
-class UsersController extends Box.Controller {
-  override readonly path = "/users";
+@Box.Controller("/users", { deps: [UsersService] })
+class UsersController {
+  public constructor(private readonly users: UsersService) {}
 
-  override routes() {
-    return [
-      this.get(":id", (ctx) => Box.json({ id: ctx.params.id })),
-    ];
+  @Box.Get(":id", { request: { params: UserIdParams } })
+  public findById(input: Param<UserIdParams>) {
+    return this.users.getById(input.params.id);
   }
 }
 ```
 
-## Why explicit registration?
+## Why explicit `createApp` configuration?
 
-BOX avoids filesystem auto-discovery, decorators, and reflection in the critical
-path because these features increase serverless startup cost.
+BOX avoids filesystem auto-discovery, runtime reflection, and request-scoped
+dependency resolution in the critical path because those features increase
+serverless startup cost and reduce predictability.
 
 The preferred pattern is:
 
 ```ts
-const app = new Box.App();
-app.controller(new UsersController(new UsersService(new UsersRepository())));
+const app = Box.createApp({
+  controllers: [UsersController],
+  services: [UsersService],
+  repositories: [UsersRepository],
+  providers: [{ provide: Config, useValue: config }],
+});
 ```
 
-This style keeps dependencies visible, makes tests easier, and reduces cold
-starts.
+This style keeps dependencies visible, makes tests easier, resolves singletons
+once at startup, and preserves low cold starts.

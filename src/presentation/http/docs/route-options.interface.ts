@@ -8,6 +8,7 @@ export interface RouteOptions {
   readonly tags?: string[];
   readonly deprecated?: boolean;
   readonly docs?: boolean;
+  readonly status?: number;
   readonly request?: RouteRequestContract;
   readonly responses?: RouteResponsesContract;
 }

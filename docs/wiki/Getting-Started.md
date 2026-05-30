@@ -11,9 +11,17 @@
 ```ts
 import { Box } from "@catniplabs/box";
 
-const app = new Box.App();
+@Box.Controller()
+class HealthController {
+  @Box.Get("/health")
+  public health(): { ok: true } {
+    return { ok: true };
+  }
+}
 
-app.get("/health", () => Box.json({ ok: true }));
+const app = Box.createApp({
+  controllers: [HealthController],
+});
 
 export default {
   fetch: (request: Request) => app.fetch(request),
@@ -46,43 +54,50 @@ serve(app);
 ## Basic routes
 
 ```ts
-const app = new Box.App();
+import { type Body, Box, type Param, type Query, z } from "@catniplabs/box";
 
-app.get("/users/:id", (ctx) => {
-  return Box.json({
-    id: ctx.params.id,
-    page: ctx.query.get("page") ?? "1",
-  });
+const UserIdParams = z.object({ id: z.string().min(1) });
+const UserQuery = z.object({
+  page: z.coerce.number().int().positive().default(1),
 });
+const CreateUserRequest = z.object({ name: z.string().min(1) });
 
-app.post("/users", async (ctx) => {
-  const body = await ctx.json<{ name?: string }>({ maxBytes: 16_384 });
+type UserIdParams = z.infer<typeof UserIdParams>;
+type UserQuery = z.infer<typeof UserQuery>;
+type CreateUserRequest = z.infer<typeof CreateUserRequest>;
 
-  if (!body.name) {
-    throw Box.badRequest("User name is required", { field: "name" });
+@Box.Controller("/users")
+class UsersController {
+  @Box.Get(":id", { request: { params: UserIdParams, query: UserQuery } })
+  public findById(input: Param<UserIdParams> & Query<UserQuery>) {
+    return { id: input.params.id, page: input.query.page };
   }
 
-  return Box.json({ id: crypto.randomUUID(), name: body.name }, {
+  @Box.Post("/", {
     status: 201,
-  });
-});
+    request: { body: CreateUserRequest, bodyMaxBytes: 16_384 },
+  })
+  public create(input: Body<CreateUserRequest>) {
+    return { id: crypto.randomUUID(), name: input.body.name };
+  }
+}
+
+const app = Box.createApp({ controllers: [UsersController] });
 ```
 
-## Handler context
+## Controller input
 
-Each handler receives a simple context:
+Controller methods receive typed input assembled from validated schemas:
 
 ```ts
-interface Context {
-  request: Request;
-  url: URL;
-  params: Record<string, string>;
-  query: URLSearchParams;
-  state: Record<string, unknown>;
-  json<T>(options?: { maxBytes?: number }): Promise<T>;
-  text(options?: { maxBytes?: number }): Promise<string>;
-}
+type Body<T> = { body: T };
+type Param<T> = { params: T };
+type Query<T> = { query: T };
+type Header<T> = { headers: T };
 ```
+
+This keeps application handlers decoupled from the raw request context while
+preserving a small Web Standard core.
 
 ## Response helpers
 

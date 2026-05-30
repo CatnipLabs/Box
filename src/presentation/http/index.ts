@@ -1,4 +1,6 @@
 export { App } from "./app.ts";
+export { createApp } from "./create-app.ts";
+export type { CreateAppOptions } from "./create-app-options.interface.ts";
 export { readJson, readText } from "./body.ts";
 export { createOpenApiDocument } from "./docs/index.ts";
 export type {

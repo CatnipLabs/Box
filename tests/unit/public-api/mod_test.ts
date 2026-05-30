@@ -39,5 +39,6 @@ Deno.test("Public API: Box exposes DDD bases", () => {
   assertEquals(typeof Box.requestLogger, "function");
   assertEquals(typeof Box.secureHeaders, "function");
   assertEquals(typeof Box.createOpenApiDocument, "function");
+  assertEquals(typeof Box.createApp, "function");
   assertEquals(typeof Box.z.object, "function");
 });

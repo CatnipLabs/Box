@@ -27,3 +27,13 @@ export function empty(status = 204, init: ResponseInit = {}): Response {
 export function redirect(url: string | URL, status = 302): Response {
   return Response.redirect(url, status);
 }
+
+export function toResponse(value: unknown, init: ResponseInit = {}): Response {
+  if (value instanceof Response) return value;
+
+  if (value === undefined) {
+    return empty(init.status ?? 204, init);
+  }
+
+  return json(value, init);
+}

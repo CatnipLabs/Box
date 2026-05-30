@@ -15,12 +15,12 @@
     "./adapters/deno": "./src/infra/runtime/deno.ts"
   },
   "tasks": {
-    "dev": "deno test --allow-read=src --watch tests",
-    "test": "deno test --allow-read=src tests",
-    "test:unit": "deno test --allow-read=src tests/unit",
+    "dev": "deno test --allow-read=src,examples,docs,README.md --watch tests",
+    "test": "deno test --allow-read=src,examples,docs,README.md tests",
+    "test:unit": "deno test --allow-read=src,examples,docs,README.md tests/unit",
     "test:integration": "deno test --allow-read=src tests/integration",
     "test:performance": "deno test --allow-read=src tests/performance",
-    "coverage": "rm -rf coverage && deno test --allow-read=src --coverage=coverage tests && deno run --allow-run scripts/check_coverage.ts coverage 90 85 85",
+    "coverage": "rm -rf coverage && deno test --allow-read=src,examples,docs,README.md --coverage=coverage tests && deno run --allow-run scripts/check_coverage.ts coverage 90 85 85",
     "coverage:report": "deno coverage --exclude=tests/ coverage",
     "check": "deno check src examples bench scripts tests",
     "fmt": "deno fmt",

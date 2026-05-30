@@ -1,4 +1,5 @@
 import type { Context, Handler, Middleware } from "./types.ts";
+import { toResponse } from "./response.ts";
 
 export function compose(
   middlewares: Middleware[],
@@ -16,7 +17,7 @@ async function dispatch(
   const middleware = middlewares[index];
 
   if (!middleware) {
-    return await handler(ctx);
+    return toResponse(await handler(ctx));
   }
 
   let nextCalled = false;

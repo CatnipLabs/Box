@@ -1,4 +1,7 @@
-import type { Controller } from "../controllers/index.ts";
+import {
+  getControllerPath,
+  getControllerRoutes,
+} from "../controllers/controller-metadata-store.ts";
 import { createContext } from "./context/index.ts";
 import { createOpenApiDocument } from "./docs/create-openapi-document.util.ts";
 import type {
@@ -13,7 +16,7 @@ import { validateRequestContract } from "./docs/validate-request-contract.util.t
 import { HttpError } from "./errors.ts";
 import { compose } from "./middleware.ts";
 import { Router } from "./router.ts";
-import { json } from "./response.ts";
+import { json, toResponse } from "./response.ts";
 import { errorResponse } from "./responses/index.ts";
 import type { Context, Handler, HttpMethod, Middleware } from "./types.ts";
 import { joinPaths } from "./utils/join-paths.util.ts";
@@ -76,9 +79,7 @@ export class App {
     handler: Handler,
     options: RouteOptions = {},
   ): this {
-    const routeHandler = options.request
-      ? createValidatedHandler(handler, options)
-      : handler;
+    const routeHandler = createRouteHandler(handler, options);
 
     this.router.add(method, path, routeHandler);
     this.documentedRoutes.push({
@@ -89,11 +90,11 @@ export class App {
     return this;
   }
 
-  public controller(controller: Controller): this {
-    for (const route of controller.routes()) {
+  public controller(controller: object): this {
+    for (const route of getControllerRoutes(controller)) {
       this.route(
         route.method,
-        joinPaths(controller.path, route.path),
+        joinPaths(getControllerPath(controller), route.path),
         route.handler,
         route.options,
       );
@@ -110,7 +111,7 @@ export class App {
     const ctx = createContext(request, url, {});
 
     try {
-      return await this.handler()(ctx);
+      return toResponse(await this.handler()(ctx));
     } catch (error) {
       return this.handleError(error, request);
     }
@@ -159,7 +160,7 @@ export class App {
       }
 
       ctx.params = match.params;
-      return await match.handler(ctx);
+      return toResponse(await match.handler(ctx));
     } catch (error) {
       ctx.state[INTERNAL_ERROR_STATE_KEY] = error;
       return this.handleError(error, ctx.request);
@@ -181,13 +182,16 @@ export class App {
   }
 }
 
-function createValidatedHandler(
+function createRouteHandler(
   handler: Handler,
   options: RouteOptions,
 ): Handler {
   return async (ctx) => {
-    ctx.validated = await validateRequestContract(ctx, options.request);
-    return await handler(ctx);
+    if (options.request) {
+      ctx.validated = await validateRequestContract(ctx, options.request);
+    }
+
+    return toResponse(await handler(ctx), { status: options.status });
   };
 }
 
