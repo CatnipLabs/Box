@@ -19,8 +19,70 @@ const architecturalLayerDirectories = new Set([
   "presentation",
 ]);
 
-const sourceDefinitions =
-  /^\s*(?:export\s+)?(?:abstract\s+)?(?:class|interface|enum|type)\s+[A-Za-z0-9_]+/gm;
+const sourceDefinitionKeywords = new Set([
+  "class",
+  "interface",
+  "enum",
+  "type",
+]);
+
+function isIdentifierCharacter(character: string): boolean {
+  const code = character.charCodeAt(0);
+
+  return character === "_" ||
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122);
+}
+
+function consumeKeyword(source: string, keyword: string): string | undefined {
+  if (!source.startsWith(keyword)) return undefined;
+
+  const nextCharacter = source[keyword.length];
+  if (nextCharacter && isIdentifierCharacter(nextCharacter)) {
+    return undefined;
+  }
+
+  return source.slice(keyword.length).trimStart();
+}
+
+function readIdentifier(source: string): string | undefined {
+  let end = 0;
+
+  while (end < source.length && isIdentifierCharacter(source[end])) {
+    end++;
+  }
+
+  return end === 0 ? undefined : source.slice(0, end);
+}
+
+function getSourceDefinition(line: string): string | undefined {
+  let remaining = line.trimStart();
+
+  remaining = consumeKeyword(remaining, "export") ?? remaining;
+  remaining = consumeKeyword(remaining, "abstract") ?? remaining;
+
+  const keyword = readIdentifier(remaining);
+  if (!keyword || !sourceDefinitionKeywords.has(keyword)) {
+    return undefined;
+  }
+
+  remaining = remaining.slice(keyword.length).trimStart();
+
+  const name = readIdentifier(remaining);
+  return name ? `${keyword} ${name}` : undefined;
+}
+
+function collectSourceDefinitions(content: string): string[] {
+  const definitions: string[] = [];
+
+  for (const line of content.split("\n")) {
+    const definition = getSourceDefinition(line);
+    if (definition) definitions.push(definition);
+  }
+
+  return definitions;
+}
 
 async function collectSourceFiles(directory: URL): Promise<URL[]> {
   const files: URL[] = [];
@@ -63,6 +125,10 @@ function relativeToSrc(file: URL): string {
   return file.pathname.slice(sourceRoot.pathname.length);
 }
 
+function compareAlphabetically(left: string, right: string): number {
+  return left.localeCompare(right);
+}
+
 Deno.test({
   name:
     "Architecture: src uses only domain/application/infra/presentation at the root",
@@ -76,7 +142,7 @@ Deno.test({
       }
     }
 
-    assertEquals(forbiddenEntries.sort(), []);
+    assertEquals(forbiddenEntries.sort(compareAlphabetically), []);
   },
 });
 
@@ -99,7 +165,7 @@ Deno.test({
       }
     }
 
-    assertEquals(forbiddenDirectories.sort(), []);
+    assertEquals(forbiddenDirectories.sort(compareAlphabetically), []);
   },
 });
 
@@ -111,7 +177,7 @@ Deno.test({
 
     for (const file of await collectSourceFiles(sourceRoot)) {
       const content = await Deno.readTextFile(file);
-      const definitions = content.match(sourceDefinitions) ?? [];
+      const definitions = collectSourceDefinitions(content);
 
       if (definitions.length > 1) {
         violations.push({ file: relativeToSrc(file), definitions });

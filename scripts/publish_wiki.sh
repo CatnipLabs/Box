@@ -7,7 +7,7 @@ DRY_RUN="${DRY_RUN:-0}"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-if [ ! -d "$SOURCE_DIR" ]; then
+if [[ ! -d "$SOURCE_DIR" ]]; then
   echo "Wiki source directory not found: $SOURCE_DIR" >&2
   exit 1
 fi
@@ -27,7 +27,7 @@ Publishing BOX wiki
   wiki git:   ${WIKI_URL}
 MSG
 
-if [ "$DRY_RUN" = "1" ]; then
+if [[ "$DRY_RUN" == "1" ]]; then
   echo "DRY_RUN=1 enabled; validating source files only."
   find "$SOURCE_DIR" -maxdepth 1 -type f -name '*.md' -print | sort
   exit 0

@@ -98,8 +98,13 @@ export class AuthStrategyRegistry {
   }
 
   private availableStrategies(): string {
-    return [...this.names.keys()].sort().join(", ") || "none";
+    return [...this.names.keys()].sort(compareAlphabetically).join(", ") ||
+      "none";
   }
+}
+
+function compareAlphabetically(left: string, right: string): number {
+  return left.localeCompare(right);
 }
 
 function assertAuthStrategyToken(
