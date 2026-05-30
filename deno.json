@@ -3,13 +3,19 @@
   "version": "0.1.0",
   "exports": {
     ".": "./src/mod.ts",
-    "./http": "./src/http/index.ts",
-    "./logger": "./src/logger/index.ts",
-    "./adapters/deno": "./src/adapters/deno.ts"
+    "./core": "./src/presentation/core/index.ts",
+    "./http": "./src/presentation/http/index.ts",
+    "./logger": "./src/presentation/logger/index.ts",
+    "./orm": "./src/infra/persistence/kv/index.ts",
+    "./adapters/deno": "./src/infra/runtime/deno.ts"
   },
   "tasks": {
-    "dev": "deno test --watch",
-    "test": "deno test",
+    "dev": "deno test --allow-read=src --watch tests",
+    "test": "deno test --allow-read=src tests",
+    "test:unit": "deno test --allow-read=src tests/unit",
+    "test:integration": "deno test --allow-read=src --permit-no-files tests/integration",
+    "test:performance": "deno test --allow-read=src tests/performance",
+    "coverage": "rm -rf coverage && deno test --allow-read=src --coverage=coverage tests && deno coverage --exclude=tests/ coverage",
     "check": "deno check src/mod.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
