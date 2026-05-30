@@ -99,6 +99,40 @@ type Header<T> = { headers: T };
 This keeps application handlers decoupled from the raw request context while
 preserving a small Web Standard core.
 
+## Protecting an endpoint
+
+Create an application-owned auth strategy and register it in `createApp(...)`.
+The strategy receives the full request context and can validate a bearer JWT,
+cookie, API key, or any custom credential.
+
+```ts
+import { type AuthStrategyContract, Box, type Context } from "@catniplabs/box";
+
+@Box.AuthStrategy({ name: "api-key" })
+class ApiKeyStrategy implements AuthStrategyContract {
+  public validate(ctx: Context): boolean {
+    return ctx.request.headers.get("x-api-key") === "demo-api-key";
+  }
+}
+
+@Box.Controller("/reports")
+class ReportsController {
+  @Box.Get("/")
+  @Box.Auth("api-key")
+  public list() {
+    return { reports: [] };
+  }
+}
+
+const app = Box.createApp({
+  authStrategies: [ApiKeyStrategy],
+  controllers: [ReportsController],
+});
+```
+
+If a route is protected but no matching strategy is registered, startup fails
+before the application serves traffic.
+
 ## Response helpers
 
 ```ts

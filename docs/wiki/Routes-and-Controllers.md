@@ -97,14 +97,24 @@ class AdminUsersController {
 
 ## Route and controller auth
 
-Protect a whole controller or a single endpoint with `@Box.Auth(...)`.
+Protect a whole controller or a single endpoint with `@Box.Auth(...)`. Auth runs
+after the router matches a route and before Zod request validation.
 
 ```ts
+import { type AuthStrategyContract, Box, type Context } from "@catniplabs/box";
+
+@Box.Service()
+class TokenService {
+  public isValid(token: string | undefined): boolean {
+    return token === "valid-jwt";
+  }
+}
+
 @Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
-class JwtAuthStrategy implements Box.AuthStrategyContract {
+class JwtAuthStrategy implements AuthStrategyContract {
   constructor(private readonly tokens: TokenService) {}
 
-  validate(ctx: Box.Context): boolean {
+  validate(ctx: Context): boolean {
     const token = ctx.request.headers.get("authorization")
       ?.replace(/^Bearer\s+/i, "");
     return this.tokens.isValid(token);
@@ -135,8 +145,11 @@ const app = Box.createApp({
 
 `@Box.Auth()` with no argument can be used when exactly one auth strategy is
 registered. With multiple strategies, protected routes must specify the strategy
-name or strategy class token. Legacy `Controller` subclasses can use route
-options: `this.get("/", handler, { auth: "jwt" })`.
+name or strategy class token. Empty/unknown names, duplicate strategy names, and
+non-`@Box.AuthStrategy` registrations fail during startup.
+
+Legacy `Controller` subclasses can use route options:
+`this.get("/", handler, { auth: "jwt" })`.
 
 ## Route options and Scalar/OpenAPI docs
 
@@ -144,10 +157,10 @@ Route options are attached directly to decorated methods. Zod schemas power
 request validation and automatic Scalar/OpenAPI docs.
 
 ```ts
-const CreateUserRequest = Box.z.object({ name: Box.z.string().min(1) });
-const UserResponse = Box.z.object({ id: Box.z.string(), name: Box.z.string() });
+const CreateUserRequest = z.object({ name: z.string().min(1) });
+const UserResponse = z.object({ id: z.string(), name: z.string() });
 
-type CreateUserRequest = Box.z.infer<typeof CreateUserRequest>;
+type CreateUserRequest = z.infer<typeof CreateUserRequest>;
 
 @Box.Controller("/users")
 class UsersController {

@@ -73,3 +73,61 @@ Deno.test("Examples: hello-world routes are executable", async () => {
   assertEquals(hello.status, 200);
   assertEquals(await hello.json(), { hello: "Ada" });
 });
+
+Deno.test("Examples: rest-api demonstrates auth, docs, and CRUD", async () => {
+  const app = await import("../../../examples/rest-api/main.ts");
+
+  const unauthorized = await app.default.fetch(
+    new Request("http://localhost/users", {
+      body: JSON.stringify({ name: "Ada" }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    }),
+  );
+
+  assertEquals(unauthorized.status, 401);
+
+  const created = await app.default.fetch(
+    new Request("http://localhost/users", {
+      body: JSON.stringify({ name: "Ada" }),
+      headers: {
+        authorization: "Bearer valid-jwt",
+        "content-type": "application/json",
+      },
+      method: "POST",
+    }),
+  );
+
+  assertEquals(created.status, 201);
+  const user = await created.json();
+  assertEquals(user.name, "Ada");
+
+  const found = await app.default.fetch(
+    new Request(`http://localhost/users/${user.id}`),
+  );
+
+  assertEquals(found.status, 200);
+  assertEquals(await found.json(), user);
+
+  const docs = await app.default.fetch(new Request("http://localhost/docs"));
+  assertEquals(docs.status, 200);
+});
+
+Deno.test("Examples: auth-strategy protects a controller", async () => {
+  const app = await import("../../../examples/auth-strategy/main.ts");
+
+  const unauthorized = await app.default.fetch(
+    new Request("http://localhost/reports"),
+  );
+  assertEquals(unauthorized.status, 401);
+
+  const authorized = await app.default.fetch(
+    new Request("http://localhost/reports", {
+      headers: { "x-api-key": "demo-api-key" },
+    }),
+  );
+  assertEquals(authorized.status, 200);
+  assertEquals(await authorized.json(), {
+    reports: ["daily-sales", "stock-alerts"],
+  });
+});

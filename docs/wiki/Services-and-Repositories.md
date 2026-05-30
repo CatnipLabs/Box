@@ -1,71 +1,122 @@
 # Services and Repositories
 
-## Service
+Services and repositories are explicit injectable resources. They are registered
+in `createApp(...)`, resolved as singletons during startup, and validated
+against BOX dependency boundaries before the first request is served.
 
-Services represent application rules and orchestrate repositories.
+## Repository
+
+Repositories own persistence and query concerns. Decorate them with
+`@Box.Repository()` so the DI container can validate and instantiate them.
 
 ```ts
-class UsersService extends Box.Service {
-  constructor(private readonly users: UsersRepository) {
-    super();
-  }
-
-  async create(input: { name?: string }): Promise<User> {
-    if (!input.name) {
-      throw Box.badRequest("User name is required", { field: "name" });
-    }
-
-    const user = new User(crypto.randomUUID(), input.name, true);
-    return await this.users.save(user);
+class User extends Box.Entity<string> {
+  public constructor(id: string, public readonly name: string) {
+    super(id);
   }
 }
-```
 
-## Base Repository
-
-A repository must receive an entity class.
-
-```ts
+@Box.Repository()
 class UsersRepository extends Box.Repository<User> {
-  constructor() {
+  public constructor() {
     super(User);
   }
+
+  public findById(id: string): User | undefined {
+    return id === "u1" ? new User("u1", "Ada") : undefined;
+  }
 }
 ```
+
+## Service
+
+Services own application rules and orchestrate repositories. Declare constructor
+dependencies with `deps` on the decorator.
+
+```ts
+@Box.Service({ deps: [UsersRepository] })
+class UsersService {
+  public constructor(private readonly users: UsersRepository) {}
+
+  public findById(id: string): User {
+    const user = this.users.findById(id);
+
+    if (!user) {
+      throw new Box.HttpError(
+        Box.HttpStatus.NOT_FOUND,
+        "User not found",
+        "user_not_found",
+        { id },
+      );
+    }
+
+    return user;
+  }
+}
+```
+
+## Controller integration
+
+Controllers should depend on services, not repositories. This keeps HTTP code
+thin and application rules reusable outside HTTP.
+
+```ts
+@Box.Controller("/users", { deps: [UsersService] })
+class UsersController {
+  public constructor(private readonly users: UsersService) {}
+
+  @Box.Get(":id")
+  public findById(input: Param<{ id: string }>): User {
+    return this.users.findById(input.params.id);
+  }
+}
+
+const app = Box.createApp({
+  controllers: [UsersController],
+  repositories: [UsersRepository],
+  services: [UsersService],
+});
+```
+
+## Custom providers
+
+Use providers for configuration, clocks, clients, and other infrastructure
+tokens that are not BOX resources.
+
+```ts
+class Config {
+  public constructor(public readonly environment: string) {}
+}
+
+const app = Box.createApp({
+  controllers: [UsersController],
+  repositories: [UsersRepository],
+  services: [UsersService],
+  providers: [
+    { provide: Config, useValue: new Config("production") },
+  ],
+});
+```
+
+Providers support `useValue`, `useClass`, and `useFactory` with explicit `deps`.
 
 ## Repository with Deno KV
 
-For real persistence, use `Box.KvRepository`.
+For real persistence, use `Box.KvRepository` directly or extend it with domain
+methods.
 
 ```ts
-class UsersRepository extends Box.KvRepository<User> {
-  constructor(kv: Deno.Kv) {
-    super(User, kv, { collection: "users" });
-  }
+class KvDatabase {
+  public constructor(public readonly kv: Deno.Kv) {}
 }
-```
 
-Main methods:
-
-```ts
-await users.save(user);
-await users.findById("u1");
-await users.deleteById("u1");
-await users.all();
-users.query();
-```
-
-## Custom repositories
-
-You can extend `KvRepository` to create domain methods.
-
-```ts
+@Box.Repository({ deps: [KvDatabase] })
 class UsersRepository extends Box.KvRepository<User> {
-  constructor(kv: Deno.Kv) {
-    super(User, kv, { collection: "users" });
+  public constructor(database: KvDatabase) {
+    super(User, database.kv, { collection: "users" });
   }
 
-  async findActiveAdults() {
+  public async findActiveAdults(): Promise<User[]> {
     return await this.query()
       .where("active", "eq", true)
       .where("age", "gte", 18)
@@ -75,14 +126,9 @@ class UsersRepository extends Box.KvRepository<User> {
 }
 ```
 
-## Testability
-
-Because dependencies are explicit, tests can instantiate services/controllers
-directly with doubles or in-memory stores.
-
 ## Dependency boundaries
 
-`createApp(...)` validates the Box resource graph before serving requests:
+`createApp(...)` validates the resource graph before serving requests:
 
 - controllers may inject services only;
 - services may inject services or repositories only;
@@ -90,7 +136,21 @@ directly with doubles or in-memory stores.
 - repositories may inject repositories or explicit provider tokens for
   infrastructure/configuration concerns.
 
-Circular dependencies fail at startup with the detected chain. A service cycle
-is a design smell: it usually means responsibilities from different contexts are
-being mixed into the same service and should be split or moved to the proper
-bounded context.
+Invalid graphs fail during startup with a message explaining the violated rule.
+
+## Circular dependencies
+
+Circular dependencies also fail during startup and include the detected chain.
+For services, a cycle usually means responsibilities from different contexts are
+being mixed into the same service. Prefer splitting orchestration into a
+separate service or moving behavior to the proper bounded context.
+
+```text
+Circular dependency detected: UsersService -> OrdersService -> UsersService
+```
+
+## Testability
+
+Because dependencies are explicit, unit tests can instantiate services directly
+with fakes, and integration tests can exercise the real `createApp(...)` graph
+with in-memory repositories or providers.

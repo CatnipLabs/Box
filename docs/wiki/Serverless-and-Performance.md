@@ -5,7 +5,7 @@ BOX was designed for serverless and edge runtimes.
 ## Principles
 
 - Fetch API-based core.
-- No mandatory decorators.
+- Decorator-first DX without `reflect-metadata`.
 - No reflection in the hot path.
 - No filesystem auto-discovery.
 - Explicit route/controller registration.
@@ -52,7 +52,8 @@ The measurement tracks:
 deno task bench
 ```
 
-Current benchmarks cover app creation and static/parameterized route dispatch.
+Current benchmarks cover app creation, static/parameterized route dispatch,
+route table scale, and middleware composition overhead.
 
 ## Performance tests
 

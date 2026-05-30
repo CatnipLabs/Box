@@ -7,13 +7,14 @@ NestJS-style developer experience.
 The primary API is controller-first:
 
 ```text
-Request -> Middleware -> Router -> Zod validation -> Controller -> Service -> Repository -> Response
+Request -> Middleware -> Router -> Auth Strategy -> Zod validation -> Controller -> Service -> Repository -> Response
 ```
 
-Controllers, services, and repositories are declared with lightweight
-decorators. Dependencies are resolved once during `createApp(...)` startup
-through an explicit singleton DI container. Box intentionally avoids filesystem
-auto-discovery, `reflect-metadata`, and request-scoped DI in the core hot path.
+Controllers, services, repositories, and auth strategies are declared with
+lightweight decorators. Dependencies are resolved once during `createApp(...)`
+startup through an explicit singleton DI container. Box intentionally avoids
+filesystem auto-discovery, `reflect-metadata`, and request-scoped DI in the core
+hot path.
 
 ## Installation
 
@@ -194,7 +195,9 @@ Box validates dependency boundaries at startup:
 - controllers may inject services only;
 - services may inject services or repositories only;
 - auth strategies may inject services or other auth strategies only;
-- circular dependency graphs fail fast with a message that points to the cycle.
+- repositories may inject repositories or explicit provider tokens only;
+- circular dependency graphs fail fast with a message that points to the cycle
+  and explains the likely architecture smell.
 
 ## Auth strategies
 
@@ -203,6 +206,8 @@ full request `Context`, so it can validate a JWT bearer token, cookie, API key,
 tenant header, or any custom source, and can write claims to `ctx.state`.
 
 ```ts
+import { type AuthStrategyContract, Box, type Context } from "@catniplabs/box";
+
 @Box.Service()
 class TokenService {
   isValid(token: string | undefined): boolean {
@@ -211,10 +216,10 @@ class TokenService {
 }
 
 @Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
-class JwtAuthStrategy implements Box.AuthStrategyContract {
+class JwtAuthStrategy implements AuthStrategyContract {
   constructor(private readonly tokens: TokenService) {}
 
-  validate(ctx: Box.Context): boolean {
+  validate(ctx: Context): boolean {
     const token = ctx.request.headers.get("authorization")
       ?.replace(/^Bearer\s+/i, "");
 
@@ -244,7 +249,13 @@ const app = Box.createApp({
 Use `@Box.Auth()` without an argument only when the application registers a
 single auth strategy. If a protected endpoint has no strategy, or multiple
 strategies are registered and no specific strategy is selected, `createApp(...)`
-fails during startup.
+fails during startup. Strategy names must be non-empty and unique, and classes
+passed to `authStrategies` must be decorated with `@Box.AuthStrategy(...)`.
+
+Auth runs after route matching and before Zod request validation. Strategies may
+return `true`/`undefined` to continue, `false` for `401 Unauthorized`, a custom
+`Response` to short-circuit, or throw `Box.HttpError` to use the universal error
+pipeline.
 
 ## OpenAPI + Scalar documentation with Zod
 
@@ -443,8 +454,10 @@ serve(app);
 
 ## Examples
 
-- `examples/hello-world/main.ts`
-- `examples/rest-api/main.ts`
+- `examples/hello-world/main.ts` — minimal controller and typed params.
+- `examples/rest-api/main.ts` — services, repositories, auth strategy, docs,
+  middlewares, and universal errors.
+- `examples/auth-strategy/main.ts` — focused API-key auth strategy example.
 
 ## Development
 
@@ -464,10 +477,11 @@ deno run scripts/measure_startup.ts
 
 ## Submodules
 
-- `@catniplabs/box`: convenience bundle with HTTP, DDD, ORM, and logger.
-- `@catniplabs/box/http`: lightweight HTTP core for serverless hot paths.
-- `@catniplabs/box/core`: DDD bases and decorators (`Entity`, `Repository`,
-  `Service`, `Controller`).
+- `@catniplabs/box`: convenience bundle with HTTP, DDD, ORM, logger, auth
+  strategy helpers, and `z`.
+- `@catniplabs/box/http`: lightweight HTTP core for serverless hot paths,
+  including auth strategy contracts and runtime helpers.
+- `@catniplabs/box/core`: explicit DI container and resource metadata.
 - `@catniplabs/box/orm`: persistence abstractions, including `KvRepository` for
   Deno KV.
 - `@catniplabs/box/adapters/deno`: Deno adapter.

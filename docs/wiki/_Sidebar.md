@@ -5,6 +5,7 @@
 - [Architecture and DDD](Architecture-and-DDD)
 - [Routes and Controllers](Routes-and-Controllers)
 - [Services and Repositories](Services-and-Repositories)
+- [Auth Strategies](Auth-Strategies)
 - [ORM with Deno KV](ORM-with-Deno-KV)
 - [Logs, Errors, and Exceptions](Logs-Errors-and-Exceptions)
 - [Security](Security)

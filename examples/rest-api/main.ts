@@ -1,4 +1,11 @@
-import { type Body, Box, type Param, z } from "../../src/mod.ts";
+import {
+  type AuthStrategyContract,
+  type Body,
+  Box,
+  type Context,
+  type Param,
+  z,
+} from "../../src/mod.ts";
 
 const CreateUserRequest = z.object({
   name: z.string().min(1),
@@ -9,9 +16,37 @@ const UserResponse = z.object({
   name: z.string(),
 });
 
+const UserIdParams = z.object({
+  id: z.string().uuid(),
+});
+
 type User = z.infer<typeof UserResponse>;
 type CreateUserRequest = z.infer<typeof CreateUserRequest>;
-type UserIdParams = { id: string };
+type UserIdParams = z.infer<typeof UserIdParams>;
+
+@Box.Service()
+class TokenService {
+  public resolveUserId(authorization: string | null): string | undefined {
+    const token = authorization?.replace(/^Bearer\s+/i, "");
+    return token === "valid-jwt" ? "user_1" : undefined;
+  }
+}
+
+@Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
+class JwtAuthStrategy implements AuthStrategyContract {
+  public constructor(private readonly tokens: TokenService) {}
+
+  public validate(ctx: Context): boolean {
+    const userId = this.tokens.resolveUserId(
+      ctx.request.headers.get("authorization"),
+    );
+
+    if (!userId) return false;
+
+    ctx.state.userId = userId;
+    return true;
+  }
+}
 
 @Box.Repository()
 class UsersRepository {
@@ -57,6 +92,7 @@ class UsersController {
 
   @Box.Get(":id", {
     summary: "Find user by id",
+    request: { params: UserIdParams },
     responses: {
       [Box.HttpStatus.OK]: { description: "User found", body: UserResponse },
       [Box.HttpStatus.NOT_FOUND]: { description: "User not found" },
@@ -67,16 +103,20 @@ class UsersController {
   }
 
   @Box.Post("/", {
+    auth: "jwt",
     status: Box.HttpStatus.CREATED,
     summary: "Create user",
     request: {
       body: CreateUserRequest,
-      bodyMaxBytes: 16_384,
+      bodyMaxBytes: Box.RequestSizeLimit.KB16,
     },
     responses: {
       [Box.HttpStatus.CREATED]: {
         description: "User created",
         body: UserResponse,
+      },
+      [Box.HttpStatus.UNAUTHORIZED]: {
+        description: "Missing or invalid bearer token",
       },
     },
   })
@@ -85,28 +125,29 @@ class UsersController {
   }
 }
 
+const logger = new Box.Log.Logger({ name: "rest-api" });
+
 const app = Box.createApp({
+  authStrategies: [JwtAuthStrategy],
   controllers: [UsersController],
   docs: {
-    enabled: Deno.env.get("BOX_DOCS") !== "false",
+    enabled: true,
     title: "Users API",
     version: "1.0.0",
     description: "Example REST API documented automatically by Box + Scalar.",
   },
   repositories: [UsersRepository],
-  services: [UsersService],
+  services: [TokenService, UsersService],
 });
 
-app.use(async (_ctx, next) => {
-  const startedAt = performance.now();
-  const response = await next();
-  response.headers.set(
-    "x-response-time-ms",
-    String(performance.now() - startedAt),
-  );
-  response.headers.set("x-powered-by", "box");
-  return response;
-});
+app.use(Box.secureHeaders());
+app.use(Box.cors({ origin: ["https://app.example.com"] }));
+app.use(Box.payloadLimit({
+  jsonMaxBytes: Box.RequestSizeLimit.MB1,
+  defaultMaxBytes: Box.RequestSizeLimit.MB1,
+}));
+app.use(Box.requestTime());
+app.use(Box.requestLogger({ logger }));
 
 export default {
   fetch: (request: Request) => app.fetch(request),

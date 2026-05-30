@@ -11,6 +11,8 @@ the full request `Context` and can validate a bearer token, cookie, API key, or
 any other application-specific credential.
 
 ```ts
+import { type AuthStrategyContract, Box, type Context } from "@catniplabs/box";
+
 @Box.Service()
 class TokenService {
   isValid(token: string | undefined): boolean {
@@ -19,10 +21,10 @@ class TokenService {
 }
 
 @Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
-class JwtAuthStrategy implements Box.AuthStrategyContract {
+class JwtAuthStrategy implements AuthStrategyContract {
   constructor(private readonly tokens: TokenService) {}
 
-  validate(ctx: Box.Context): boolean {
+  validate(ctx: Context): boolean {
     const token = ctx.request.headers.get("authorization")
       ?.replace(/^Bearer\s+/i, "");
 
@@ -53,9 +55,18 @@ A strategy may return `true`/`undefined` to allow the request, `false` to return
 `401 Unauthorized`, a `Response` to short-circuit, or throw `Box.HttpError` to
 use the normal error pipeline. Auth runs before route request validation.
 
-Startup fails fast when a protected route has no registered strategy, when
-multiple strategies are registered and `@Box.Auth()` does not specify which one
-to use, or when the strategy dependency graph violates Box's DI boundaries.
+Startup fails fast when:
+
+- a protected route has no registered strategy;
+- multiple strategies are registered and `@Box.Auth()` does not specify which
+  one to use;
+- a route references an unknown or empty strategy name;
+- a strategy name is duplicated;
+- a class in `authStrategies` is not decorated with `@Box.AuthStrategy`;
+- the strategy dependency graph violates Box's DI boundaries.
+
+These checks make auth fail closed at startup rather than accidentally exposing
+a protected endpoint.
 
 ## Secure headers
 

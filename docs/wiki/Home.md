@@ -7,13 +7,13 @@ NestJS-style developer experience.
 The project philosophy is to keep the request hot path extremely simple:
 
 ```text
-Request -> Middleware -> Router -> Zod validation -> Controller -> Service -> Repository -> Response
+Request -> Middleware -> Router -> Auth Strategy -> Zod validation -> Controller -> Service -> Repository -> Response
 ```
 
-Decorators are first-class for controllers, services, and repositories. Box
-still avoids runtime reflection, filesystem auto-discovery, and a heavy HTTP
-core. Explicit `createApp(...)` configuration keeps startup predictable in
-serverless.
+Decorators are first-class for controllers, services, repositories, and auth
+strategies. Box still avoids runtime reflection, filesystem auto-discovery, and
+a heavy HTTP core. Explicit `createApp(...)` configuration keeps startup
+predictable in serverless.
 
 ## Framework goals
 
@@ -22,6 +22,10 @@ serverless.
 - Parse and validate request input before controller methods run.
 - Keep controllers decoupled from the raw request context.
 - Resolve constructor dependencies through a simple singleton DI container.
+- Protect controllers/endpoints with application-owned auth strategies that
+  receive the full request context.
+- Fail fast during startup when DI boundaries, auth strategy selection, or
+  circular dependencies are invalid.
 - Keep cold starts low for serverless and edge runtimes.
 - Provide a lightweight ORM over Deno KV with typed CRUD and a fluent query
   builder.
@@ -64,13 +68,13 @@ export default {
 
 ## Public modules
 
-| Submodule                                   | Usage                                                                  |
-| ------------------------------------------- | ---------------------------------------------------------------------- |
-| `@catniplabs/box` or `@catniplabs/box/http` | HTTP core, decorators, `createApp`, middlewares, responses, and errors |
-| `@catniplabs/box/core`                      | DDD bases: `Entity`, `Repository`, `Service`, `Controller`             |
-| `@catniplabs/box/orm`                       | Persistence and `KvRepository` for Deno KV                             |
-| `@catniplabs/box/logger`                    | Structured logger                                                      |
-| `@catniplabs/box/adapters/deno`             | Adapter to run with local/server Deno                                  |
+| Submodule                                   | Usage                                                                                   |
+| ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `@catniplabs/box` or `@catniplabs/box/http` | HTTP core, decorators, `createApp`, auth strategies, middlewares, responses, and errors |
+| `@catniplabs/box/core`                      | Explicit DI container, providers, and injectable metadata                               |
+| `@catniplabs/box/orm`                       | Persistence and `KvRepository` for Deno KV                                              |
+| `@catniplabs/box/logger`                    | Structured logger                                                                       |
+| `@catniplabs/box/adapters/deno`             | Adapter to run with local/server Deno                                                   |
 
 ## Enterprise-style example
 
@@ -147,6 +151,7 @@ export default {
 - [Architecture and DDD](Architecture-and-DDD)
 - [Routes and Controllers](Routes-and-Controllers)
 - [Services and Repositories](Services-and-Repositories)
+- [Auth Strategies](Auth-Strategies)
 - [ORM with Deno KV](ORM-with-Deno-KV)
 - [Logs, Errors, and Exceptions](Logs-Errors-and-Exceptions)
 - [Security](Security)
@@ -164,14 +169,18 @@ Currently implemented features:
 - Controller and endpoint decorators.
 - Typed request inputs (`Body`, `Param`, `Query`, `Header`, `RequestInput`).
 - Zod-backed validation and OpenAPI/Scalar docs.
-- `createApp` with singleton DI, custom providers, services, and repositories.
+- `createApp` with singleton DI, custom providers, services, repositories, and
+  auth strategies.
+- Startup validation for DI boundaries, invalid auth selection, and circular
+  dependencies.
 - Base controllers, services, repositories, and entities for DDD.
 - `KvRepository` over Deno KV.
 - Response helpers.
 - Body helpers with byte limits.
 - Custom exceptions through `HttpError`.
 - Universal error contract.
-- CORS and secure headers.
+- CORS, secure headers, auth strategies, payload limits, Deno KV-backed rate
+  limiting, and request timing headers.
 - Structured logger and request logging.
 - Unit, integration, and performance tests, benchmarks, and cold start
   measurement.
