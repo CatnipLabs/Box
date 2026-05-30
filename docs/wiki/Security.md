@@ -46,12 +46,59 @@ routes.
 
 ## Body limits
 
-Use body helpers with explicit limits to reduce the risk of excessive payloads.
+Use route-level body helpers for endpoint-specific limits, or use global
+`payloadLimit` middleware to reject excessive request bodies before handlers
+run.
 
 ```ts
-const body = await ctx.json<{ name?: string }>({ maxBytes: 16_384 });
-const text = await ctx.text({ maxBytes: 8_192 });
+app.use(Box.payloadLimit({
+  jsonMaxBytes: Box.RequestSizeLimit.MB1,
+  uploadMaxBytes: Box.RequestSizeLimit.MB10,
+  defaultMaxBytes: Box.RequestSizeLimit.MB1,
+}));
+
+const body = await ctx.json<{ name?: string }>({
+  maxBytes: Box.RequestSizeLimit.KB16,
+});
+const text = await ctx.text({ maxBytes: Box.RequestSizeLimit.KB8 });
 ```
+
+`payloadLimit` treats `application/json` and `application/*+json` as JSON,
+`multipart/form-data` and `application/octet-stream` as uploads, and all other
+content types with `defaultMaxBytes`. Oversized payloads return `413` with the
+universal `payload_too_large` error contract.
+
+## Rate limit
+
+```ts
+const kv = await Deno.openKv();
+
+app.use(Box.rateLimit({
+  kv,
+  limit: 100,
+  windowMs: 60_000,
+  namespace: "public-api",
+}));
+```
+
+The rate limiter stores counters in Deno KV with atomic compare-and-set,
+allowing all instances of the same application to share limits when they use the
+same KV store. Responses include `x-ratelimit-limit`, `x-ratelimit-remaining`,
+`x-ratelimit-reset`, and blocked requests return `429` plus `retry-after`.
+
+By default, the client identifier is resolved from `cf-connecting-ip`,
+`x-real-ip`, then the first `x-forwarded-for` value. In production, only trust
+these headers when they are set by your proxy/CDN boundary; otherwise pass a
+custom `identifier` callback.
+
+## Request time
+
+```ts
+app.use(Box.requestTime());
+```
+
+Adds an `x-response-time-ms` header with the time spent processing the request.
+Use `requestTime({ headerName: "server-timing-ms" })` to customize the header.
 
 ## Safe errors
 

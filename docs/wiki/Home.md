@@ -26,7 +26,8 @@ serverless.
 - Provide a lightweight ORM over Deno KV with typed CRUD and a fluent query
   builder.
 - Standardize error responses with a universal contract.
-- Include modern security: built-in CORS and secure headers inspired by Helmet.
+- Include modern security: built-in CORS, secure headers inspired by Helmet,
+  payload limits, Deno KV-backed rate limiting, and request timing headers.
 
 ## Hello world
 

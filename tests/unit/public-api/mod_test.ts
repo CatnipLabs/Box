@@ -46,6 +46,10 @@ Deno.test("Public API: Box exposes DDD bases", () => {
   assertEquals(typeof Box.KvRepository, "function");
   assertEquals(typeof Box.requestLogger, "function");
   assertEquals(typeof Box.secureHeaders, "function");
+  assertEquals(typeof Box.payloadLimit, "function");
+  assertEquals(typeof Box.rateLimit, "function");
+  assertEquals(typeof Box.requestTime, "function");
+  assertEquals(Box.RequestSizeLimit.MB1, 1_048_576);
   assertEquals(typeof Box.createOpenApiDocument, "function");
   assertEquals(typeof Box.createApp, "function");
   assertEquals(typeof Box.z.object, "function");

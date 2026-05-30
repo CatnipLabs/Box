@@ -24,6 +24,17 @@ export {
   payloadTooLarge,
 } from "./errors.ts";
 export { compose } from "./middleware.ts";
+export {
+  payloadLimit,
+  rateLimit,
+  RequestSizeLimit,
+  requestTime,
+} from "./middlewares/index.ts";
+export type {
+  PayloadLimitOptions,
+  RateLimitOptions,
+  RequestTimeOptions,
+} from "./middlewares/index.ts";
 export { empty, json, redirect, text } from "./response.ts";
 export { cors, secureHeaders } from "./security.ts";
 export type {

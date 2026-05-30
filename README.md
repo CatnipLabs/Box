@@ -274,10 +274,36 @@ app.use(async (_ctx, next) => {
 Common built-ins:
 
 ```ts
+const kv = await Deno.openKv();
+
 app.use(Box.secureHeaders());
 app.use(Box.cors({ origin: ["https://app.example.com"] }));
 app.use(Box.requestLogger({ logger }));
+app.use(Box.requestTime());
+app.use(Box.payloadLimit({
+  jsonMaxBytes: Box.RequestSizeLimit.MB1,
+  uploadMaxBytes: Box.RequestSizeLimit.MB10,
+  defaultMaxBytes: Box.RequestSizeLimit.MB1,
+}));
+app.use(Box.rateLimit({
+  kv,
+  limit: 100,
+  windowMs: 60_000,
+  namespace: "public-api",
+}));
 ```
+
+`payloadLimit` treats `application/json` and `application/*+json` as JSON,
+`multipart/form-data` and `application/octet-stream` as uploads, and all other
+bodies with `defaultMaxBytes`. `RequestSizeLimit` exposes common byte constants
+such as `KB16`, `MB1`, `MB10`, and `MB100` so applications do not need to repeat
+raw numbers.
+
+`rateLimit` uses Deno KV atomic operations, so all instances sharing the same KV
+store share the same IP/identifier buckets. By default it reads
+`cf-connecting-ip`, `x-real-ip`, then the first `x-forwarded-for` value; pass
+`identifier` when your production proxy/CDN trust boundary requires a custom
+key.
 
 ## ORM over Deno KV
 

@@ -6,6 +6,12 @@ import { KvRepository } from "./infra/persistence/kv/index.ts";
 import { requestLogger } from "./presentation/http/logging/index.ts";
 import { HttpStatus } from "./presentation/http/http-status.enum.ts";
 import {
+  payloadLimit,
+  rateLimit,
+  RequestSizeLimit,
+  requestTime,
+} from "./presentation/http/middlewares/index.ts";
+import {
   Controller,
   Delete,
   Get,
@@ -62,10 +68,14 @@ export const Box = {
   empty,
   json,
   notFound,
+  payloadLimit,
+  rateLimit,
   readJson,
   readText,
   redirect,
   requestLogger,
+  RequestSizeLimit,
+  requestTime,
   secureHeaders,
   text,
   z,
