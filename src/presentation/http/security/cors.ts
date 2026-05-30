@@ -7,6 +7,11 @@ import { resolveCorsOrigin } from "./resolve-cors-origin.util.ts";
 
 export function cors(options: CorsOptions = {}): Middleware {
   const originOption = options.origin ?? "*";
+  if (options.credentials && originOption === "*") {
+    throw new TypeError(
+      "CORS credentials require an explicit origin allowlist; wildcard '*' is invalid with credentials.",
+    );
+  }
   const methods = options.methods ?? DEFAULT_CORS_METHODS;
 
   return async (ctx, next) => {

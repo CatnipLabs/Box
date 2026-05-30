@@ -88,6 +88,38 @@ Deno.test("Core: controller normaliza prefixo e path das rotas", async () => {
   assertEquals(await bodyJson(response), { created: true });
 });
 
+class MethodsController extends Controller {
+  public exposeAll() {
+    const handler = () => json({ ok: true });
+    return [
+      this.put("/put", handler),
+      this.patch("/patch", handler),
+      this.delete("/delete", handler),
+      this.options("/options", handler),
+      this.head("/head", handler),
+    ];
+  }
+}
+
+Deno.test("Core: Controller expõe helpers para todos os métodos REST", () => {
+  const routes = new MethodsController().exposeAll();
+
+  assertEquals(routes.map((route) => route.method), [
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+    "HEAD",
+  ]);
+  assertEquals(routes.map((route) => route.path), [
+    "/put",
+    "/patch",
+    "/delete",
+    "/options",
+    "/head",
+  ]);
+});
+
 Deno.test("Core: Repository exige Entity base", () => {
   assertEquals(new UsersRepository().entityName, "User");
 

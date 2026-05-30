@@ -13,6 +13,7 @@ export function createContext(
     params,
     query: url.searchParams,
     state,
+    validated: {},
     json: (options) => readJson(request, options),
     text: (options) => readText(request, options),
   };

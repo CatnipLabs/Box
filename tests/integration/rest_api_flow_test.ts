@@ -294,5 +294,7 @@ Deno.test("Integration: custom exceptions use the universal error response contr
   assertEquals(logs[0].context?.error, {
     name: "HttpError",
     message: "Todo not found",
+    code: "todo_not_found",
+    status: 404,
   });
 });

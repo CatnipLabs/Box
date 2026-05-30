@@ -1,6 +1,6 @@
-import type { Logger } from "../../../infra/logger/logger.ts";
+import type { HttpLogger } from "./http-logger.interface.ts";
 
 export interface RequestLoggerOptions {
-  logger?: Logger;
+  logger?: HttpLogger;
   now?: () => number;
 }

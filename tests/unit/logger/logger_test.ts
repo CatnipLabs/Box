@@ -6,7 +6,7 @@ import {
   Logger,
   type LogRecord,
   requestLogger,
-} from "../../../src/presentation/logger/index.ts";
+} from "../../../src/logger/index.ts";
 import { Levels } from "../../../src/infra/logger/levels.enum.ts";
 import { ForegroundColors } from "../../../src/infra/logger/foreground.colors.ts";
 import { BackgroundColors } from "../../../src/infra/logger/background.colors.ts";
@@ -338,6 +338,7 @@ Deno.test("requestLogger: registra erro estruturado e relança a exceção", asy
   assertEquals(records[0].context, {
     method: "GET",
     path: "/boom",
+    status: 500,
     durationMs: 3,
     requestId: "corr-1",
     error: { message: "falha bruta" },

@@ -1,5 +1,17 @@
 export { App } from "./app.ts";
 export { readJson, readText } from "./body.ts";
+export { createOpenApiDocument } from "./docs/index.ts";
+export type {
+  AppOptions,
+  DocsOptions,
+  OpenApiDocument,
+  OpenApiServer,
+  RouteOptions,
+  RouteRequestContract,
+  RouteResponseContract,
+  RouteResponsesContract,
+  ScalarOptions,
+} from "./docs/index.ts";
 export {
   badRequest,
   defaultCode,
@@ -28,6 +40,7 @@ export type {
   Next,
   Params,
   State,
+  ValidatedRequest,
 } from "./types.ts";
 export { requestLogger } from "./logging/index.ts";
 export type { RequestLoggerOptions } from "./logging/index.ts";

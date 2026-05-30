@@ -119,3 +119,22 @@ Deno.test("Security: cors responde preflight global sem rota OPTIONS registrada"
   );
   assertEquals(response.headers.get("access-control-max-age"), "600");
 });
+
+Deno.test("Security: cors preserva Vary existente e evita duplicar Origin", async () => {
+  const app = new App();
+
+  app.use(cors({ origin: ["https://app.example.com"] }));
+  app.get("/cache", () => {
+    const response = json({ ok: true });
+    response.headers.set("vary", "Accept-Encoding, origin");
+    return response;
+  });
+
+  const response = await app.fetch(
+    new Request("http://localhost/cache", {
+      headers: { origin: "https://app.example.com" },
+    }),
+  );
+
+  assertEquals(response.headers.get("vary"), "Accept-Encoding, origin");
+});

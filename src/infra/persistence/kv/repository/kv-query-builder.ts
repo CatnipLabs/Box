@@ -51,12 +51,25 @@ export class KvQueryBuilder<TEntity extends Entity<KvEntityId>> {
   }
 
   public async first(): Promise<TEntity | undefined> {
-    const [first] = await this.limit(1).all();
+    const [first] = await this.collect({ maxResults: 1, skip: this.skip });
     return first;
   }
 
   public async all(): Promise<TEntity[]> {
+    return await this.collect({ maxResults: this.maxResults, skip: this.skip });
+  }
+
+  private async collect(options: {
+    maxResults?: number;
+    skip: number;
+  }): Promise<TEntity[]> {
     const entities: TEntity[] = [];
+    const canStopEarly = this.sort === undefined &&
+      options.maxResults !== undefined;
+    const requiredMatches = canStopEarly
+      ? options.skip + options.maxResults!
+      : Infinity;
+    let matched = 0;
 
     for await (
       const entry of this.kv.list<Record<string, unknown>>({
@@ -64,9 +77,13 @@ export class KvQueryBuilder<TEntity extends Entity<KvEntityId>> {
       })
     ) {
       const entity = this.mapper.fromValue(entry.value);
-      if (this.matches(entity)) {
-        entities.push(entity);
-      }
+      if (!this.matches(entity)) continue;
+
+      matched++;
+      if (this.sort === undefined && matched <= options.skip) continue;
+
+      entities.push(entity);
+      if (canStopEarly && matched >= requiredMatches) break;
     }
 
     if (this.sort) {
@@ -79,11 +96,15 @@ export class KvQueryBuilder<TEntity extends Entity<KvEntityId>> {
       );
     }
 
-    const start = this.skip;
-    const end = this.maxResults === undefined
-      ? undefined
-      : start + this.maxResults;
-    return entities.slice(start, end);
+    if (this.sort) {
+      const start = options.skip;
+      const end = options.maxResults === undefined
+        ? undefined
+        : start + options.maxResults;
+      return entities.slice(start, end);
+    }
+
+    return entities;
   }
 
   private matches(entity: TEntity): boolean {

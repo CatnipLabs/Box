@@ -8,3 +8,4 @@ export type { Middleware } from "./middleware.type.ts";
 export type { Next } from "./next.type.ts";
 export type { Params } from "./params.type.ts";
 export type { State } from "./state.type.ts";
+export type { ValidatedRequest } from "./validated-request.interface.ts";

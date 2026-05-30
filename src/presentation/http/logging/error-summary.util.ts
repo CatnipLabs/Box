@@ -1,13 +1,22 @@
-import type { LogContext } from "../../../infra/logger/contracts/log-context.type.ts";
-import { messageToText } from "../../../infra/logger/utils/message-to-text.util.ts";
+import { HttpError } from "../errors.ts";
+import type { HttpLogContext } from "./http-log-context.type.ts";
 
-export function errorSummary(error: unknown): LogContext {
-  if (error instanceof Error) {
+export function errorSummary(error: unknown): HttpLogContext {
+  if (error instanceof HttpError) {
     return {
       name: error.name,
       message: error.message,
+      code: error.code,
+      status: error.status,
     };
   }
 
-  return { message: messageToText(error) };
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: "Unexpected error",
+    };
+  }
+
+  return { message: String(error) };
 }

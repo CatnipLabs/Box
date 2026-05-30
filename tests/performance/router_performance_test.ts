@@ -38,11 +38,13 @@ function summarize(durations: number[]): PerformanceSample {
 async function measureRouterDispatch(
   app: { fetch(request: Request): Promise<Response> },
   iterations: number,
+  urlForIndex: (index: number) => string = (index) =>
+    `http://localhost/users/${index}?active=true`,
 ): Promise<PerformanceSample> {
   const durations: number[] = [];
 
   for (let index = 0; index < iterations; index++) {
-    const request = new Request(`http://localhost/users/${index}?active=true`);
+    const request = new Request(urlForIndex(index));
     const startedAt = performance.now();
     const response = await app.fetch(request);
     durations.push(performance.now() - startedAt);
@@ -50,6 +52,23 @@ async function measureRouterDispatch(
   }
 
   return summarize(durations);
+}
+
+function registerRoutes(
+  box: BoxModule,
+  app: InstanceType<BoxModule["App"]>,
+  count: number,
+): void {
+  for (let index = 0; index < count; index++) {
+    app.get(`/static-${index}`, () => box.json({ ok: true, index }));
+    app.get(`/tenants/:tenantId/resources-${index}/:id`, (ctx: BoxContext) => {
+      return box.json({
+        tenantId: ctx.params.tenantId,
+        id: ctx.params.id,
+        index,
+      });
+    });
+  }
 }
 
 Deno.test("Performance: public entrypoint cold import, setup and first request stay serverless-friendly", async () => {
@@ -84,4 +103,78 @@ Deno.test("Performance: router dispatch keeps low latency under repeated in-proc
   assertLessOrEqual(sample.meanMs, ROUTER_MEAN_MAX_MS);
   assertLessOrEqual(sample.p95Ms, ROUTER_P95_MAX_MS);
   assertLessOrEqual(sample.totalMs, ROUTER_MAX_TOTAL_MS);
+});
+
+Deno.test("Performance: router scales across 10, 100 and 500 route tables", async () => {
+  const box = await importFreshBoxModule();
+
+  for (const routeCount of [10, 100, 500]) {
+    const app = new box.App();
+    registerRoutes(box, app, routeCount);
+
+    const staticSample = await measureRouterDispatch(
+      app,
+      200,
+      (index) => `http://localhost/static-${index % routeCount}`,
+    );
+    const paramSample = await measureRouterDispatch(
+      app,
+      200,
+      (index) =>
+        `http://localhost/tenants/t${index}/resources-${
+          index % routeCount
+        }/r${index}`,
+    );
+
+    assertLessOrEqual(staticSample.p95Ms, ROUTER_P95_MAX_MS);
+    assertLessOrEqual(paramSample.p95Ms, ROUTER_P95_MAX_MS);
+  }
+});
+
+Deno.test("Performance: middlewares e payload JSON pequeno/médio preservam baixa latência", async () => {
+  const box = await importFreshBoxModule();
+  const app = new box.App();
+
+  for (let index = 0; index < 10; index++) {
+    app.use(async (ctx: BoxContext, next) => {
+      ctx.state[`mw${index}`] = true;
+      const response = await next();
+      response.headers.set(`x-mw-${index}`, "1");
+      return response;
+    });
+  }
+
+  app.get("/ping", () => box.json({ ok: true }));
+  app.post("/echo", async (ctx: BoxContext) => {
+    const payload = await ctx.json<{ items: string[] }>({ maxBytes: 32_768 });
+    return box.json({ count: payload.items.length });
+  });
+
+  const payload = JSON.stringify({
+    items: Array.from({ length: 100 }, (_, i) => `item-${i}`),
+  });
+  const sample = await measureRouterDispatch(
+    app,
+    200,
+    () => "http://localhost/ping",
+  );
+
+  // Re-run with POST/payload for the actual body path while preserving the same summary contract.
+  const durations: number[] = [];
+  for (let index = 0; index < 100; index++) {
+    const startedAt = performance.now();
+    const response = await app.fetch(
+      new Request("http://localhost/echo", {
+        method: "POST",
+        body: payload,
+      }),
+    );
+    durations.push(performance.now() - startedAt);
+    assertEquals(response.status, 200);
+    assertEquals(await response.json(), { count: 100 });
+  }
+  const bodySample = summarize(durations);
+
+  assertLessOrEqual(sample.p95Ms, ROUTER_P95_MAX_MS);
+  assertLessOrEqual(bodySample.p95Ms, ROUTER_P95_MAX_MS);
 });

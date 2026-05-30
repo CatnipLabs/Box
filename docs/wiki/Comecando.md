@@ -9,7 +9,7 @@
 ## Estrutura mínima
 
 ```ts
-import { Box } from "box";
+import { Box } from "@catniplabs/box";
 
 const app = new Box.App();
 
@@ -29,7 +29,7 @@ import { Box } from "../../src/mod.ts";
 Em um consumidor do pacote, use o import público configurado pelo pacote:
 
 ```ts
-import { Box } from "box";
+import { Box } from "@catniplabs/box";
 ```
 
 ## Rodando localmente com Deno
@@ -37,7 +37,7 @@ import { Box } from "box";
 Para um app exportado como Fetch handler, use o adapter Deno:
 
 ```ts
-import { serve } from "box/adapters/deno";
+import { serve } from "@catniplabs/box/adapters/deno";
 import app from "./app.ts";
 
 serve(app);

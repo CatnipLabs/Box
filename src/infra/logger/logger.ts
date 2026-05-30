@@ -1,6 +1,10 @@
 import type { LogContext } from "./contracts/log-context.type.ts";
 import type { LogRecord } from "./contracts/log-record.interface.ts";
 import type { LoggerConstructorOptions } from "./contracts/logger-constructor-options.interface.ts";
+import {
+  safeJsonValue,
+  safeStringify,
+} from "../../core/serialization/index.ts";
 import { LoggerConstructorSchema } from "./logger-constructor.schema.ts";
 import { BackgroundColors } from "./background.colors.ts";
 import { ForegroundColors } from "./foreground.colors.ts";
@@ -60,7 +64,7 @@ export class Logger {
     message: unknown,
     context?: LogContext,
   ): string {
-    const suffix = context === undefined ? "" : ` ${JSON.stringify(context)}`;
+    const suffix = context === undefined ? "" : ` ${safeStringify(context)}`;
     return `${this.getFormatedName()} ${
       this.getFormatedLevel(level)
     } ${this.getFormatedTime()}: ${messageToText(message)}${suffix}`;
@@ -107,7 +111,7 @@ export class Logger {
     }
 
     if (context !== undefined) {
-      record.context = context;
+      record.context = safeJsonValue(context) as LogContext;
     }
 
     return record;
@@ -123,12 +127,16 @@ export class Logger {
       return;
     }
 
-    if (this.loggerOptions.sink) {
-      this.loggerOptions.sink(this.toRecord(level, message, context));
-      return;
-    }
+    try {
+      if (this.loggerOptions.sink) {
+        this.loggerOptions.sink(this.toRecord(level, message, context));
+        return;
+      }
 
-    writer(this.format(level, message, context));
+      writer(this.format(level, message, context));
+    } catch (_error) {
+      // Logging must never break application flow.
+    }
   }
 
   private shouldLog(level: Levels): boolean {

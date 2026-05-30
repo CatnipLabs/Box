@@ -1,6 +1,7 @@
 export { KvQueryBuilder } from "./repository/kv-query-builder.ts";
 export { KvRepository } from "./repository/kv-repository.ts";
 export type { KvEntityId } from "./contracts/kv-entity-id.type.ts";
+export type { KvEntityHydrator } from "./contracts/kv-entity-hydrator.type.ts";
 export type { KvEntityMapper } from "./contracts/kv-entity-mapper.interface.ts";
 export type { KvEntry } from "./contracts/kv-entry.interface.ts";
 export type { KvKey } from "./contracts/kv-key.type.ts";

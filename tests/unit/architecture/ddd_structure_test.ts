@@ -4,8 +4,10 @@ const sourceRoot = new URL("../../../src/", import.meta.url);
 
 const allowedRootEntries = new Set([
   "application",
+  "core",
   "domain",
   "infra",
+  "logger",
   "mod.ts",
   "presentation",
 ]);
@@ -143,27 +145,27 @@ Deno.test({
         const targetRelative = relativeToSrc(target);
         const targetLayer = targetRelative.split("/")[0];
 
-        if (sourceLayer === "application" && targetLayer === "presentation") {
-          violations.push({
-            file: sourceRelative,
-            importPath,
-            reason: "application não deve depender de presentation",
-          });
+        if (
+          !architecturalLayerDirectories.has(sourceLayer) ||
+          !architecturalLayerDirectories.has(targetLayer) ||
+          sourceLayer === targetLayer
+        ) {
+          continue;
         }
 
-        if (sourceLayer === "application" && targetLayer === "infra") {
-          violations.push({
-            file: sourceRelative,
-            importPath,
-            reason: "application não deve depender de infra",
-          });
-        }
+        const allowedTargetsByLayer: Record<string, Set<string>> = {
+          domain: new Set(),
+          application: new Set(["domain"]),
+          presentation: new Set(["application", "domain"]),
+          infra: new Set(["application", "domain"]),
+        };
 
-        if (sourceLayer === "infra" && targetLayer === "presentation") {
+        if (!allowedTargetsByLayer[sourceLayer].has(targetLayer)) {
           violations.push({
             file: sourceRelative,
             importPath,
-            reason: "infra não deve depender de presentation",
+            reason:
+              `${sourceLayer} não deve depender de ${targetLayer} pela matriz Clean Architecture`,
           });
         }
       }
