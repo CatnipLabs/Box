@@ -123,6 +123,32 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "Architecture: application messaging does not expose Deno KV queue types",
+  permissions: { read: [sourceRoot] },
+  async fn() {
+    const violations: Array<{ file: string; reason: string }> = [];
+
+    for (
+      const file of await collectSourceFiles(
+        new URL("application/messaging/", sourceRoot),
+      )
+    ) {
+      const content = await Deno.readTextFile(file);
+      if (/\bDeno\.(?:Kv|KvKey|KvCommitResult)\b/.test(content)) {
+        violations.push({
+          file: relativeToSrc(file),
+          reason:
+            "application messaging must use framework-owned queue abstractions",
+        });
+      }
+    }
+
+    assertEquals(violations, []);
+  },
+});
+
+Deno.test({
   name: "Architecture: layer dependencies follow Clean Architecture",
   permissions: { read: [sourceRoot] },
   async fn() {

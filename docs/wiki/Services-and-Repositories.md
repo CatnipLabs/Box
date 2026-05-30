@@ -131,7 +131,9 @@ class UsersRepository extends Box.KvRepository<User> {
 `createApp(...)` validates the resource graph before serving requests:
 
 - controllers may inject services only;
-- services may inject services or repositories only;
+- services may inject services, repositories, or producers only;
+- producers may inject services only;
+- consumers may inject services only;
 - auth strategies may inject services or other auth strategies only;
 - repositories may inject repositories or explicit provider tokens for
   infrastructure/configuration concerns.

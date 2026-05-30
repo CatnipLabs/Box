@@ -54,6 +54,10 @@ Deno.test("Public API: Box exposes DDD bases", () => {
   assertEquals(typeof Box.createApp, "function");
   assertEquals(typeof Box.Auth, "function");
   assertEquals(typeof Box.AuthStrategy, "function");
+  assertEquals(typeof Box.Consumer, "function");
+  assertEquals(typeof Box.denoQueues, "function");
+  assertEquals(typeof Box.Event, "function");
+  assertEquals(typeof Box.Producer, "function");
   assertEquals(typeof Box.z.object, "function");
 });
 
@@ -85,4 +89,13 @@ Deno.test("Public API: Box exposes auth strategy registration and protected rout
 
   assertEquals(response.status, Box.HttpStatus.OK);
   assertEquals(await response.json(), { ok: true });
+});
+
+Deno.test("Public API: core submodule remains DI-only and does not export messaging decorators", async () => {
+  const core = await import("@catniplabs/box/core");
+  const exposed = core as Record<string, unknown>;
+
+  assertEquals(exposed.Event, undefined);
+  assertEquals(exposed.Producer, undefined);
+  assertEquals(exposed.Consumer, undefined);
 });

@@ -193,11 +193,65 @@ options are the recommended DX.
 Box validates dependency boundaries at startup:
 
 - controllers may inject services only;
-- services may inject services or repositories only;
+- services may inject services, repositories, or producers only;
+- producers may inject services only;
+- consumers may inject services only;
 - auth strategies may inject services or other auth strategies only;
 - repositories may inject repositories or explicit provider tokens only;
 - circular dependency graphs fail fast with a message that points to the cycle
   and explains the likely architecture smell.
+
+## Messaging with Deno Queues
+
+Use `Event`, `Producer`, and `Consumer` for background work backed by Deno KV
+Queues.
+
+```ts
+import { Box } from "@catniplabs/box";
+
+@Box.Event({ name: "orders.created" })
+class OrderCreatedEvent extends Box.Event<{ orderId: string }> {}
+
+@Box.Producer({ event: OrderCreatedEvent })
+class OrderCreatedProducer extends Box.Producer<OrderCreatedEvent> {}
+
+@Box.Service({ deps: [OrderCreatedProducer] })
+class OrdersService {
+  public constructor(private readonly producer: OrderCreatedProducer) {}
+
+  public async create(orderId: string): Promise<void> {
+    await this.producer.publish({ orderId }, {
+      backoffSchedule: [1_000, 5_000, 10_000],
+      keysIfUndelivered: [["failed_orders", orderId]],
+    });
+  }
+}
+
+@Box.Consumer({ event: OrderCreatedEvent, deps: [OrdersService] })
+class OrderCreatedConsumer extends Box.Consumer<OrderCreatedEvent> {
+  public constructor(private readonly orders: OrdersService) {
+    super();
+  }
+
+  public async handle(event: OrderCreatedEvent): Promise<void> {
+    // Deno Queues are at-least-once: make side effects idempotent.
+    await saveOrderProjection(event.payload.orderId, event.id);
+  }
+}
+
+const kv = await Deno.openKv();
+const app = Box.createApp({
+  controllers: [OrdersController],
+  services: [OrdersService],
+  producers: [OrderCreatedProducer],
+  consumers: [OrderCreatedConsumer],
+  queues: Box.denoQueues({ kv }),
+});
+```
+
+`publish` forwards Deno queue options such as `delay`, `backoffSchedule`, and
+`keysIfUndelivered`. Local runs may require `--unstable-kv` depending on the
+Deno version.
 
 ## Auth strategies
 

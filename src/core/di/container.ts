@@ -205,7 +205,12 @@ function isAllowedDependency(
     case "controller":
       return dependencyKind === "service";
     case "service":
-      return dependencyKind === "service" || dependencyKind === "repository";
+      return dependencyKind === "service" || dependencyKind === "repository" ||
+        dependencyKind === "producer";
+    case "producer":
+      return dependencyKind === "service";
+    case "consumer":
+      return dependencyKind === "service";
     case "auth-strategy":
       return dependencyKind === "service" || dependencyKind === "auth-strategy";
     case "repository":
@@ -218,7 +223,11 @@ function dependencyRuleMessage(kind: InjectableKind): string {
     case "controller":
       return "Controllers may inject services only.";
     case "service":
-      return "Services may inject services or repositories only.";
+      return "Services may inject services, repositories, or producers only.";
+    case "producer":
+      return "Producers may inject services only.";
+    case "consumer":
+      return "Consumers may inject services only.";
     case "auth-strategy":
       return "Auth strategies may inject services or auth strategies only.";
     case "repository":

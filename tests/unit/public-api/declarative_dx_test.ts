@@ -5,6 +5,7 @@ import {
   Controller,
   createApp,
   Get,
+  type MessageCommitResult,
   type Param,
   Post,
   type Query,
@@ -170,3 +171,86 @@ Deno.test("Public DX: Box.App no longer exposes low-level route registration met
     assertEquals(method in app, false, `${method} should not be public`);
   }
 });
+
+@Box.Event({ name: "public.user.created" })
+class PublicUserCreatedEvent extends Box.Event<{ userId: string }> {}
+
+@Box.Producer({ event: PublicUserCreatedEvent })
+class PublicUserCreatedProducer extends Box.Producer<PublicUserCreatedEvent> {}
+
+@Service({ deps: [PublicUserCreatedProducer] })
+class PublicUserMessagingService {
+  public constructor(private readonly producer: PublicUserCreatedProducer) {}
+
+  public publish(userId: string): Promise<MessageCommitResult> {
+    return this.producer.publish({ userId });
+  }
+}
+
+@Box.Consumer({
+  event: PublicUserCreatedEvent,
+  deps: [PublicUserMessagingService],
+})
+class PublicUserCreatedConsumer extends Box.Consumer<PublicUserCreatedEvent> {
+  public seen: string[] = [];
+
+  public handle(event: PublicUserCreatedEvent): void {
+    this.seen.push(event.payload.userId);
+  }
+}
+
+Deno.test("Public DX: Box exposes messaging events, producers, consumers, and denoQueues", async () => {
+  const kv = new PublicApiFakeQueue();
+
+  @Controller("/public-user-messages", { deps: [PublicUserMessagingService] })
+  class PublicUserMessagingController {
+    public constructor(private readonly messages: PublicUserMessagingService) {}
+
+    @Post("/")
+    public async publish(): Promise<{ queued: true }> {
+      await this.messages.publish("user-1");
+      return { queued: true };
+    }
+  }
+
+  const app = createApp({
+    consumers: [PublicUserCreatedConsumer],
+    controllers: [PublicUserMessagingController],
+    producers: [PublicUserCreatedProducer],
+    queues: Box.denoQueues({ kv }),
+    services: [PublicUserMessagingService],
+  });
+
+  const response = await app.fetch(
+    new Request("http://localhost/public-user-messages", { method: "POST" }),
+  );
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), { queued: true });
+  assertEquals(kv.enqueued.length, 1);
+});
+
+Deno.test("Public DX: @catniplabs/box/messaging exposes Deno Queue helpers", async () => {
+  const messaging = await import("@catniplabs/box/messaging");
+
+  assertEquals(typeof messaging.denoQueues, "function");
+  assertEquals(typeof messaging.DenoQueueRuntime, "function");
+});
+
+class PublicApiFakeQueue {
+  public readonly enqueued: Array<{ value: unknown; options?: unknown }> = [];
+
+  public enqueue(
+    value: unknown,
+    options?: unknown,
+  ): Promise<Deno.KvCommitResult> {
+    this.enqueued.push({ value, options });
+    return Promise.resolve({ ok: true, versionstamp: "00000000000000010000" });
+  }
+
+  public listenQueue(
+    _handler: (value: unknown) => Promise<void> | void,
+  ): Promise<void> {
+    return Promise.resolve();
+  }
+}

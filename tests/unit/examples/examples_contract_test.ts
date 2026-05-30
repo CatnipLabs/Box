@@ -131,3 +131,35 @@ Deno.test("Examples: auth-strategy protects a controller", async () => {
     reports: ["daily-sales", "stock-alerts"],
   });
 });
+
+Deno.test("Examples: messaging demonstrates Deno Queues producers and consumers", async () => {
+  const example = await import("../../../examples/messaging/main.ts");
+  const kv = new ExampleFakeQueue();
+  const app = example.createMessagingApp(kv);
+
+  const response = await app.fetch(
+    new Request("http://localhost/orders", { method: "POST" }),
+  );
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), { queued: true });
+  assertEquals(kv.enqueued.length, 1);
+});
+
+class ExampleFakeQueue {
+  public readonly enqueued: Array<{ value: unknown; options?: unknown }> = [];
+
+  public enqueue(
+    value: unknown,
+    options?: unknown,
+  ): Promise<Deno.KvCommitResult> {
+    this.enqueued.push({ value, options });
+    return Promise.resolve({ ok: true, versionstamp: "00000000000000010000" });
+  }
+
+  public listenQueue(
+    _handler: (value: unknown) => Promise<void> | void,
+  ): Promise<void> {
+    return Promise.resolve();
+  }
+}
