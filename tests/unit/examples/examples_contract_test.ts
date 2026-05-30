@@ -55,3 +55,21 @@ Deno.test({
     assertEquals(violations, []);
   },
 });
+
+Deno.test("Examples: hello-world routes are executable", async () => {
+  const app = await import("../../../examples/hello-world/main.ts");
+
+  const health = await app.default.fetch(
+    new Request("http://localhost/health"),
+  );
+
+  assertEquals(health.status, 200);
+  assertEquals(await health.json(), { ok: true });
+
+  const hello = await app.default.fetch(
+    new Request("http://localhost/hello/Ada"),
+  );
+
+  assertEquals(hello.status, 200);
+  assertEquals(await hello.json(), { hello: "Ada" });
+});

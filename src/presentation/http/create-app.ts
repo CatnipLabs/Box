@@ -1,5 +1,5 @@
 import { Container } from "../../core/di/index.ts";
-import { App } from "./app.ts";
+import { App, registerController } from "./app.ts";
 import type { CreateAppOptions } from "./create-app-options.interface.ts";
 
 export function createApp(options: CreateAppOptions): App {
@@ -23,7 +23,7 @@ export function createApp(options: CreateAppOptions): App {
   }
 
   for (const controller of options.controllers) {
-    app.controller(container.resolve(controller));
+    registerController(app, container.resolve(controller));
   }
 
   return app;

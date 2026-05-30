@@ -2,6 +2,10 @@ import { assertEquals, assertStringIncludes } from "@std/assert";
 import { z } from "zod";
 import { Controller } from "../../../src/presentation/controllers/index.ts";
 import { App, json } from "../../../src/presentation/http/index.ts";
+import {
+  registerController,
+  registerRoute,
+} from "../../../src/presentation/http/app.ts";
 
 interface OpenApiParameter {
   name: string;
@@ -102,8 +106,8 @@ Deno.test("OpenAPI docs: generates Scalar/OpenAPI document from route Zod schema
     },
   });
 
-  app.controller(new UsersController());
-  app.post("/users", (ctx) => {
+  registerController(app, new UsersController());
+  registerRoute(app, "POST", "/users", (ctx) => {
     const body = ctx.validated.body as { name: string; email: string };
     return json({ id: "user-1", ...body }, { status: 201 });
   }, {
@@ -115,7 +119,9 @@ Deno.test("OpenAPI docs: generates Scalar/OpenAPI document from route Zod schema
       201: { description: "User created", body: CreateUserResponse },
     },
   });
-  app.get("/internal", () => json({ ok: true }), { docs: false });
+  registerRoute(app, "GET", "/internal", () => json({ ok: true }), {
+    docs: false,
+  });
 
   const response = await app.fetch(
     new Request("http://localhost/openapi.json"),
@@ -168,22 +174,28 @@ Deno.test("OpenAPI docs: covers defaults, headers, servers, deprecated, and cust
     scalar: { theme: "purple", layout: "classic" },
   });
 
-  app.get("/reports/:id/export", () => new Response("id,total\n1,10"), {
-    summary: "Export report",
-    description: "CSV report export",
-    deprecated: true,
-    request: {
-      headers: z.object({ authorization: z.string() }),
-    },
-    responses: {
-      200: {
-        description: "CSV export",
-        contentType: "text/csv",
-        body: z.object({ content: z.string() }),
+  registerRoute(
+    app,
+    "GET",
+    "/reports/:id/export",
+    () => new Response("id,total\n1,10"),
+    {
+      summary: "Export report",
+      description: "CSV report export",
+      deprecated: true,
+      request: {
+        headers: z.object({ authorization: z.string() }),
+      },
+      responses: {
+        200: {
+          description: "CSV export",
+          contentType: "text/csv",
+          body: z.object({ content: z.string() }),
+        },
       },
     },
-  });
-  app.get("/ping", () => json({ ok: true }));
+  );
+  registerRoute(app, "GET", "/ping", () => json({ ok: true }));
 
   const docsPage = await app.fetch(new Request("http://localhost/reference"));
   const docsHtml = await docsPage.text();
@@ -230,7 +242,7 @@ Deno.test("OpenAPI docs: exposes the Scalar page when enabled", async () => {
     docs: { enabled: true, title: "Billing API" },
   });
 
-  app.get("/health", () => json({ ok: true }), {
+  registerRoute(app, "GET", "/health", () => json({ ok: true }), {
     responses: { 200: { description: "Healthy" } },
   });
 
@@ -253,7 +265,7 @@ Deno.test("OpenAPI docs: can be disabled by environment", async () => {
     docs: { enabled: false, title: "Private API" },
   });
 
-  app.get("/health", () => json({ ok: true }), {
+  registerRoute(app, "GET", "/health", () => json({ ok: true }), {
     responses: { 200: { description: "Healthy" } },
   });
 
@@ -269,7 +281,7 @@ Deno.test("OpenAPI docs: can be disabled by environment", async () => {
 Deno.test("OpenAPI docs: validates request body with Zod before the handler and exposes ctx.validated", async () => {
   const app = new App();
 
-  app.post("/orders", (ctx) => {
+  registerRoute(app, "POST", "/orders", (ctx) => {
     const body = ctx.validated.body as { quantity: number };
     return json({ quantity: body.quantity });
   }, {
@@ -305,7 +317,7 @@ Deno.test("OpenAPI docs: validates request body with Zod before the handler and 
 Deno.test("OpenAPI docs: validates params, query, headers, and malformed JSON", async () => {
   const app = new App();
 
-  app.post("/tenants/:tenantId/items", (ctx) => {
+  registerRoute(app, "POST", "/tenants/:tenantId/items", (ctx) => {
     return json(ctx.validated);
   }, {
     request: {
@@ -359,7 +371,7 @@ Deno.test("OpenAPI docs: validates params, query, headers, and malformed JSON", 
 Deno.test("OpenAPI docs: limits the body size validated by Zod", async () => {
   const app = new App();
 
-  app.post("/uploads", () => json({ ok: true }), {
+  registerRoute(app, "POST", "/uploads", () => json({ ok: true }), {
     request: {
       body: z.object({ name: z.string() }),
       bodyMaxBytes: 16,

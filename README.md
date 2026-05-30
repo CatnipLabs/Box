@@ -36,9 +36,9 @@ During local development in this repository, examples import from
 ```ts
 import { Box } from "@catniplabs/box";
 
-@Box.Controller()
+@Box.Controller("/health")
 class HealthController {
-  @Box.Get("/health")
+  @Box.Get()
   public health(): { ok: true } {
     return { ok: true };
   }
@@ -76,7 +76,7 @@ class UsersController {
   }
 
   @Box.Post("/", {
-    status: 201,
+    status: Box.HttpStatus.CREATED,
     request: { body: CreateUserRequest },
   })
   public create(input: Body<CreateUserRequest>) {
@@ -134,7 +134,13 @@ class UsersService {
 
   public getById(id: string): User {
     const user = this.users.findById(id);
-    if (!user) throw new Box.HttpError(404, "User not found", "user_not_found");
+    if (!user) {
+      throw new Box.HttpError(
+        Box.HttpStatus.NOT_FOUND,
+        "User not found",
+        "user_not_found",
+      );
+    }
     return user;
   }
 }
@@ -205,13 +211,14 @@ type CreateUserRequest = z.infer<typeof CreateUserRequest>;
 @Box.Controller("/users")
 class UsersController {
   @Box.Post("/", {
-    status: 201,
+    status: Box.HttpStatus.CREATED,
     summary: "Create user",
-    operationId: "createUser",
-    tags: ["Users"],
     request: { body: CreateUserRequest },
     responses: {
-      201: { description: "User created", body: UserResponse },
+      [Box.HttpStatus.CREATED]: {
+        description: "User created",
+        body: UserResponse,
+      },
     },
   })
   public create(input: Body<CreateUserRequest>) {
@@ -231,8 +238,15 @@ const app = Box.createApp({
 
 Important details:
 
+- `summary` is normally handwritten because it is human-facing.
+- `operationId` defaults to the controller method name, for example `findById`.
+- `tags` default to the controller class name without the `Controller` suffix.
+- `request.params` is inferred from route tokens such as `:id` as string params;
+  provide a Zod schema only when you need stricter rules such as UUIDs.
 - `request.params`, `request.query`, `request.headers`, and `request.body`
-  accept Zod schemas.
+  accept explicit Zod schemas.
+- Use `Box.HttpStatus` instead of numeric status codes in route metadata and
+  exceptions.
 - The request is validated before the controller method; invalid input returns
   `400` using the universal error contract.
 - Parsed/coerced values are injected into the typed controller input.

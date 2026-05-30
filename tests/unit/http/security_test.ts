@@ -4,12 +4,13 @@ import {
   cors,
   secureHeaders,
 } from "../../../src/presentation/http/security.ts";
+import { registerRoute } from "../../../src/presentation/http/app.ts";
 
 Deno.test("Security: secureHeaders applies Helmet-style secure headers", async () => {
   const app = new App();
 
   app.use(secureHeaders());
-  app.get("/health", () => json({ ok: true }));
+  registerRoute(app, "GET", "/health", () => json({ ok: true }));
 
   const response = await app.fetch(new Request("http://localhost/health"));
 
@@ -31,7 +32,7 @@ Deno.test("Security: secureHeaders does not overwrite an already defined header"
   const app = new App();
 
   app.use(secureHeaders());
-  app.get("/frame", () => {
+  registerRoute(app, "GET", "/frame", () => {
     const response = json({ ok: true });
     response.headers.set("x-frame-options", "SAMEORIGIN");
     return response;
@@ -46,7 +47,7 @@ Deno.test("Security: cors applies headers on real requests for an allowed origin
   const app = new App();
 
   app.use(cors({ origin: ["https://app.example.com"], credentials: true }));
-  app.get("/users", () => json({ ok: true }));
+  registerRoute(app, "GET", "/users", () => json({ ok: true }));
 
   const response = await app.fetch(
     new Request("http://localhost/users", {
@@ -70,7 +71,7 @@ Deno.test("Security: cors does not allow origins outside the allowlist", async (
   const app = new App();
 
   app.use(cors({ origin: ["https://app.example.com"] }));
-  app.get("/users", () => json({ ok: true }));
+  registerRoute(app, "GET", "/users", () => json({ ok: true }));
 
   const response = await app.fetch(
     new Request("http://localhost/users", {
@@ -91,7 +92,7 @@ Deno.test("Security: cors responds to global preflight without a registered OPTI
     allowedHeaders: ["authorization", "content-type"],
     maxAge: 600,
   }));
-  app.get("/users", () => json({ ok: true }));
+  registerRoute(app, "GET", "/users", () => json({ ok: true }));
 
   const response = await app.fetch(
     new Request("http://localhost/users", {
@@ -124,7 +125,7 @@ Deno.test("Security: cors preserves existing Vary and avoids duplicating Origin"
   const app = new App();
 
   app.use(cors({ origin: ["https://app.example.com"] }));
-  app.get("/cache", () => {
+  registerRoute(app, "GET", "/cache", () => {
     const response = json({ ok: true });
     response.headers.set("vary", "Accept-Encoding, origin");
     return response;

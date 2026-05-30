@@ -1,9 +1,10 @@
 import { assertEquals } from "@std/assert";
 import {
-  App,
+  Box,
   Controller,
   createApp,
   Get,
+  HttpStatus,
   Post,
   Repository,
   Service,
@@ -61,9 +62,9 @@ class AdminUsersController {
 }
 
 Deno.test("HTTP: controller decorators infer the route prefix and wrap DTOs as JSON", async () => {
-  const app = new App();
-
-  app.controller(new UsersController());
+  const app = createApp({
+    controllers: [UsersController],
+  });
 
   const response = await app.fetch(new Request("http://localhost/users/42"));
 
@@ -76,9 +77,10 @@ Deno.test("HTTP: controller decorators infer the route prefix and wrap DTOs as J
 });
 
 Deno.test("HTTP: method decorators preserve route options for validation, status, and documentation", async () => {
-  const app = new App({ docs: {} });
-
-  app.controller(new UsersController());
+  const app = createApp({
+    controllers: [UsersController],
+    docs: {},
+  });
 
   const response = await app.fetch(
     new Request("http://localhost/users", {
@@ -104,9 +106,9 @@ Deno.test("HTTP: method decorators preserve route options for validation, status
 });
 
 Deno.test("HTTP: controller decorator accepts an explicit prefix when inference is not enough", async () => {
-  const app = new App();
-
-  app.controller(new AdminUsersController());
+  const app = createApp({
+    controllers: [AdminUsersController],
+  });
 
   const response = await app.fetch(new Request("http://localhost/admin/users"));
 
@@ -350,4 +352,51 @@ Deno.test("HTTP: createApp supports value, class, and factory providers", async 
     name: "Provider User 7 2026 2026",
   });
   assertEquals(ProviderSystemClock.instances, 1);
+});
+
+@Controller("/auto-doc-users")
+class AutoDocUsersController {
+  @Get(":id", {
+    summary: "Find user by id",
+    responses: {
+      [HttpStatus.OK]: { description: "User found" },
+      [HttpStatus.NOT_FOUND]: { description: "User not found" },
+    },
+  })
+  public findById(input: Param<{ id: string }>): { id: string } {
+    return { id: input.params.id };
+  }
+}
+
+Deno.test("HTTP: endpoint decorators infer operationId, tags, and basic params", async () => {
+  const app = createApp({
+    controllers: [AutoDocUsersController],
+    docs: { enabled: true, title: "Auto Docs" },
+  });
+
+  const routeResponse = await app.fetch(
+    new Request("http://localhost/auto-doc-users/42"),
+  );
+  assertEquals(routeResponse.status, Box.HttpStatus.OK);
+  assertEquals(await routeResponse.json(), { id: "42" });
+
+  const openApiResponse = await app.fetch(
+    new Request("http://localhost/openapi.json"),
+  );
+  const document = await openApiResponse.json();
+  const operation = document.paths["/auto-doc-users/{id}"].get;
+
+  assertEquals(operation.operationId, "findById");
+  assertEquals(operation.tags, ["AutoDocUsers"]);
+  assertEquals(
+    operation.parameters.map((parameter: { name: string; in: string }) => ({
+      name: parameter.name,
+      in: parameter.in,
+    })),
+    [{ name: "id", in: "path" }],
+  );
+  assertEquals(
+    operation.responses[String(HttpStatus.OK)].description,
+    "User found",
+  );
 });

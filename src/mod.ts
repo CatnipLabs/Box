@@ -4,6 +4,7 @@ import { Logger } from "./infra/logger/index.ts";
 import { Levels } from "./infra/logger/levels.enum.ts";
 import { KvRepository } from "./infra/persistence/kv/index.ts";
 import { requestLogger } from "./presentation/http/logging/index.ts";
+import { HttpStatus } from "./presentation/http/http-status.enum.ts";
 import {
   Controller,
   Delete,
@@ -44,6 +45,7 @@ export const Box = {
   Get,
   Head,
   HttpError,
+  HttpStatus,
   KvRepository,
   Log,
   Options,

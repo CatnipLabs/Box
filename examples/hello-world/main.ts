@@ -6,9 +6,9 @@ const HelloParams = z.object({
 
 type HelloParams = z.infer<typeof HelloParams>;
 
-@Box.Controller()
+@Box.Controller("/health")
 class HealthController {
-  @Box.Get("/health")
+  @Box.Get()
   public health(): { ok: true } {
     return { ok: true };
   }

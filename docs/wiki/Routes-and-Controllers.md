@@ -41,7 +41,10 @@ class UsersController {
     return { id: input.params.id, search: input.query.search };
   }
 
-  @Box.Post("/", { status: 201, request: { body: CreateUserRequest } })
+  @Box.Post("/", {
+    status: Box.HttpStatus.CREATED,
+    request: { body: CreateUserRequest },
+  })
   public create(input: Body<CreateUserRequest>) {
     return { id: crypto.randomUUID(), name: input.body.name };
   }
@@ -64,7 +67,10 @@ class UsersController {
     return await this.users.getById(input.params.id);
   }
 
-  @Box.Post("/", { status: 201, request: { body: CreateUserRequest } })
+  @Box.Post("/", {
+    status: Box.HttpStatus.CREATED,
+    request: { body: CreateUserRequest },
+  })
   public async create(input: Body<CreateUserRequest>) {
     return await this.users.create(input.body);
   }
@@ -103,12 +109,14 @@ type CreateUserRequest = Box.z.infer<typeof CreateUserRequest>;
 @Box.Controller("/users")
 class UsersController {
   @Box.Post("/", {
-    status: 201,
+    status: Box.HttpStatus.CREATED,
     summary: "Create user",
-    tags: ["Users"],
     request: { body: CreateUserRequest },
     responses: {
-      201: { description: "User created", body: UserResponse },
+      [Box.HttpStatus.CREATED]: {
+        description: "User created",
+        body: UserResponse,
+      },
     },
   })
   public create(input: Body<CreateUserRequest>) {
@@ -116,6 +124,16 @@ class UsersController {
   }
 }
 ```
+
+Defaults applied by endpoint decorators:
+
+- `summary` remains explicit because it is human-facing.
+- `operationId` defaults to the decorated method name.
+- `tags` defaults to the controller class name without the `Controller` suffix.
+- `request.params` is inferred from route tokens such as `:id` as string params;
+  pass an explicit Zod schema when params need stricter validation.
+- Prefer `Box.HttpStatus` over numeric status codes in route metadata,
+  responses, and exceptions.
 
 ## Legacy controller base class
 

@@ -8,6 +8,7 @@ import {
   requestLogger,
   secureHeaders,
 } from "../../../src/presentation/http/index.ts";
+import { registerRoute } from "../../../src/presentation/http/app.ts";
 
 async function errorJson(response: Response): Promise<Record<string, unknown>> {
   return await response.json() as Record<string, unknown>;
@@ -27,8 +28,8 @@ Deno.test("HTTP hardening: 404/405 and handler errors pass through middlewares",
   app.use(cors({ origin: "https://app.example.com" }));
   app.use(secureHeaders());
   app.use(requestLogger({ logger }));
-  app.get("/users", () => json({ ok: true }));
-  app.post("/bad", () => {
+  registerRoute(app, "GET", "/users", () => json({ ok: true }));
+  registerRoute(app, "POST", "/bad", () => {
     throw new HttpError(400, "Bad input", "bad_input");
   });
 
@@ -76,7 +77,7 @@ Deno.test("HTTP hardening: 404/405 and handler errors pass through middlewares",
 Deno.test("HTTP hardening: URL path param with invalid percent encoding returns universal 400", async () => {
   const app = new App();
   app.use(secureHeaders());
-  app.get("/users/:id", () => json({ ok: true }));
+  registerRoute(app, "GET", "/users/:id", () => json({ ok: true }));
 
   const response = await app.fetch(
     new Request("http://localhost/users/%E0%A4%A"),
@@ -141,7 +142,7 @@ Deno.test("HTTP hardening: circular error details and BigInt are serialized safe
   const circular: Record<string, unknown> = { id: 1n };
   circular.self = circular;
   const app = new App();
-  app.get("/bad", () => {
+  registerRoute(app, "GET", "/bad", () => {
     throw new HttpError(400, "Bad", "bad", circular);
   });
 
@@ -169,7 +170,7 @@ Deno.test("HTTP hardening: logger and requestLogger do not break the response wh
       },
     },
   }));
-  app.get("/ok", () => json({ ok: true }));
+  registerRoute(app, "GET", "/ok", () => json({ ok: true }));
 
   const response = await app.fetch(new Request("http://localhost/ok"));
 
@@ -188,7 +189,7 @@ Deno.test("HTTP hardening: requestLogger redacts unexpected error messages", asy
       },
     },
   }));
-  app.get("/boom", () => {
+  registerRoute(app, "GET", "/boom", () => {
     throw new Error("database password leaked");
   });
 
@@ -213,7 +214,7 @@ Deno.test("HTTP hardening: secureHeaders supports configurable HSTS", async () =
   app.use(secureHeaders({
     strictTransportSecurity: "max-age=31536000; includeSubDomains",
   }));
-  app.get("/ok", () => json({ ok: true }));
+  registerRoute(app, "GET", "/ok", () => json({ ok: true }));
 
   const response = await app.fetch(new Request("https://localhost/ok"));
 

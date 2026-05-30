@@ -6,6 +6,7 @@ import {
   readJson,
   readText,
 } from "../../../src/presentation/http/index.ts";
+import { registerRoute } from "../../../src/presentation/http/app.ts";
 
 async function bodyJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
@@ -43,7 +44,7 @@ function assertErrorBody(
 Deno.test("App: responds to a GET route with JSON", async () => {
   const app = new App();
 
-  app.get("/health", () => json({ ok: true }));
+  registerRoute(app, "GET", "/health", () => json({ ok: true }));
 
   const response = await app.fetch(new Request("http://localhost/health"));
 
@@ -58,7 +59,7 @@ Deno.test("App: responds to a GET route with JSON", async () => {
 Deno.test("App: resolves params and query in REST routes", async () => {
   const app = new App();
 
-  app.get("/users/:userId/orders/:orderId", (ctx) => {
+  registerRoute(app, "GET", "/users/:userId/orders/:orderId", (ctx) => {
     return json({
       userId: ctx.params.userId,
       orderId: ctx.params.orderId,
@@ -96,7 +97,7 @@ Deno.test("App: responds with JSON 404 when the route does not exist", async () 
 Deno.test("App: responds with 405 when the path exists for another method", async () => {
   const app = new App();
 
-  app.get("/users", () => json({ ok: true }));
+  registerRoute(app, "GET", "/users", () => json({ ok: true }));
 
   const response = await app.fetch(
     new Request("http://localhost/users", {
@@ -135,7 +136,12 @@ Deno.test("App: executes middleware in order and shares state", async () => {
     return response;
   });
 
-  app.get("/middleware", (ctx) => json({ requestId: ctx.state.requestId }));
+  registerRoute(
+    app,
+    "GET",
+    "/middleware",
+    (ctx) => json({ requestId: ctx.state.requestId }),
+  );
 
   const response = await app.fetch(new Request("http://localhost/middleware"));
 
@@ -148,7 +154,7 @@ Deno.test("App: executes middleware in order and shares state", async () => {
 Deno.test("App: transforms HttpError into a safe JSON response", async () => {
   const app = new App();
 
-  app.get("/bad", () => {
+  registerRoute(app, "GET", "/bad", () => {
     throw new HttpError(400, "Invalid payload", "invalid_payload", {
       field: "name",
     });
@@ -175,7 +181,7 @@ Deno.test("App: transforms HttpError into a safe JSON response", async () => {
 Deno.test("App: transforms unexpected errors into 500 without leaking stack", async () => {
   const app = new App();
 
-  app.get("/boom", () => {
+  registerRoute(app, "GET", "/boom", () => {
     throw new Error("database password leaked");
   });
 
@@ -201,7 +207,7 @@ Deno.test("App: supports custom exceptions extending HttpError", async () => {
   }
 
   const app = new App();
-  app.post("/orders", () => {
+  registerRoute(app, "POST", "/orders", () => {
     throw new CreditLimitExceeded();
   });
 

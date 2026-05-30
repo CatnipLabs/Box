@@ -5,6 +5,7 @@ import { Entity } from "../../../src/domain/entities/entity.ts";
 import { Repository } from "../../../src/domain/repositories/index.ts";
 import type { EntityConstructor } from "../../../src/domain/repositories/index.ts";
 import { Service } from "../../../src/application/services/service.ts";
+import { registerController } from "../../../src/presentation/http/app.ts";
 
 async function bodyJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
@@ -64,7 +65,7 @@ Deno.test("Core: app.controller registers controller routes with a prefix", asyn
     new UsersService(new UsersRepository()),
   );
 
-  app.controller(controller);
+  registerController(app, controller);
 
   const response = await app.fetch(new Request("http://localhost/users/42"));
 
@@ -78,7 +79,7 @@ Deno.test("Core: controller normalizes route prefix and path", async () => {
     new UsersService(new UsersRepository()),
   );
 
-  app.controller(controller);
+  registerController(app, controller);
 
   const response = await app.fetch(
     new Request("http://localhost/users", { method: "POST" }),

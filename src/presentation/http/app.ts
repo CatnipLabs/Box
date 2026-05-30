@@ -14,6 +14,7 @@ import { resolveDocsOptions } from "./docs/resolve-docs-options.util.ts";
 import { scalarHtml } from "./docs/scalar-html.util.ts";
 import { validateRequestContract } from "./docs/validate-request-contract.util.ts";
 import { HttpError } from "./errors.ts";
+import { HttpStatus } from "./http-status.enum.ts";
 import { compose } from "./middleware.ts";
 import { Router } from "./router.ts";
 import { json, toResponse } from "./response.ts";
@@ -22,6 +23,8 @@ import type { Context, Handler, HttpMethod, Middleware } from "./types.ts";
 import { joinPaths } from "./utils/join-paths.util.ts";
 
 const INTERNAL_ERROR_STATE_KEY = "box.error";
+const REGISTER_ROUTE = Symbol("box.registerRoute");
+const REGISTER_CONTROLLER = Symbol("box.registerController");
 
 export class App {
   private readonly router = new Router();
@@ -39,67 +42,9 @@ export class App {
     return this;
   }
 
-  public get(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("GET", path, handler, options);
-  }
-
-  public post(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("POST", path, handler, options);
-  }
-
-  public put(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("PUT", path, handler, options);
-  }
-
-  public patch(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("PATCH", path, handler, options);
-  }
-
-  public delete(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("DELETE", path, handler, options);
-  }
-
-  public options(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("OPTIONS", path, handler, options);
-  }
-
-  public head(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("HEAD", path, handler, options);
-  }
-
   public use(middleware: Middleware): this {
     this.middlewares.push(middleware);
     this.composedHandler = undefined;
-    return this;
-  }
-
-  public route(
-    method: HttpMethod,
-    path: string,
-    handler: Handler,
-    options: RouteOptions = {},
-  ): this {
-    const routeHandler = createRouteHandler(handler, options);
-
-    this.router.add(method, path, routeHandler);
-    this.documentedRoutes.push({
-      method,
-      path: normalizeRoutePath(path),
-      options,
-    });
-    return this;
-  }
-
-  public controller(controller: object): this {
-    for (const route of getControllerRoutes(controller)) {
-      this.route(
-        route.method,
-        joinPaths(getControllerPath(controller), route.path),
-        route.handler,
-        route.options,
-      );
-    }
-
     return this;
   }
 
@@ -174,12 +119,60 @@ export class App {
 
     return json(
       errorResponse(
-        new HttpError(500, "Internal server error", "internal_server_error"),
+        new HttpError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          "Internal server error",
+          "internal_server_error",
+        ),
         request,
       ),
-      { status: 500 },
+      { status: HttpStatus.INTERNAL_SERVER_ERROR },
     );
   }
+
+  [REGISTER_ROUTE](
+    method: HttpMethod,
+    path: string,
+    handler: Handler,
+    options: RouteOptions = {},
+  ): this {
+    const routeHandler = createRouteHandler(handler, options);
+
+    this.router.add(method, path, routeHandler);
+    this.documentedRoutes.push({
+      method,
+      path: normalizeRoutePath(path),
+      options,
+    });
+    return this;
+  }
+
+  [REGISTER_CONTROLLER](controller: object): this {
+    for (const route of getControllerRoutes(controller)) {
+      this[REGISTER_ROUTE](
+        route.method,
+        joinPaths(getControllerPath(controller), route.path),
+        route.handler,
+        route.options,
+      );
+    }
+
+    return this;
+  }
+}
+
+export function registerRoute(
+  app: App,
+  method: HttpMethod,
+  path: string,
+  handler: Handler,
+  options?: RouteOptions,
+): App {
+  return app[REGISTER_ROUTE](method, path, handler, options);
+}
+
+export function registerController(app: App, controller: object): App {
+  return app[REGISTER_CONTROLLER](controller);
 }
 
 function createRouteHandler(

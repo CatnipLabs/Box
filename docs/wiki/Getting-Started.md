@@ -11,9 +11,9 @@
 ```ts
 import { Box } from "@catniplabs/box";
 
-@Box.Controller()
+@Box.Controller("/health")
 class HealthController {
-  @Box.Get("/health")
+  @Box.Get()
   public health(): { ok: true } {
     return { ok: true };
   }
@@ -74,7 +74,7 @@ class UsersController {
   }
 
   @Box.Post("/", {
-    status: 201,
+    status: Box.HttpStatus.CREATED,
     request: { body: CreateUserRequest, bodyMaxBytes: 16_384 },
   })
   public create(input: Body<CreateUserRequest>) {

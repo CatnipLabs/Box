@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { HttpMethod } from "../http/types.ts";
 import type { ControllerMetadata } from "./controller-metadata.interface.ts";
 import type { ControllerTarget } from "./controller-target.type.ts";
@@ -27,6 +28,10 @@ export function getControllerPath(controller: object): string {
   return inferControllerPath(constructor.name);
 }
 
+export function getControllerTag(controller: object): string {
+  return inferControllerTag((controller.constructor as ControllerTarget).name);
+}
+
 export function addDecoratedRoute(
   controller: object,
   route: DecoratedRouteDefinition,
@@ -43,15 +48,22 @@ export function getControllerRoutes(controller: object): RouteDefinition[] {
   const decorated = decoratedRoutes.get(controller);
 
   if (decorated && decorated.length > 0) {
-    return decorated.map(({ method, path, handler, options }) => ({
+    return decorated.map(({ method, path, handler, options, propertyKey }) => ({
       method,
       path,
       handler,
-      options,
+      options: enrichRouteOptions(controller, path, options, propertyKey),
     }));
   }
 
-  if (hasRoutesMethod(controller)) return controller.routes();
+  if (hasRoutesMethod(controller)) {
+    return controller.routes().map(({ method, path, handler, options }) => ({
+      method,
+      path,
+      handler,
+      options: enrichRouteOptions(controller, path, options),
+    }));
+  }
 
   return [];
 }
@@ -87,6 +99,10 @@ function inferControllerPath(className: string): string {
   return normalizeControllerPath(kebab);
 }
 
+function inferControllerTag(className: string): string {
+  return className.replace(/Controller$/, "") || className;
+}
+
 function sameRoute(
   left: DecoratedRouteDefinition,
   right: DecoratedRouteDefinition,
@@ -103,4 +119,38 @@ export function createDecoratedRoute(
   options: RouteDefinition["options"],
 ): DecoratedRouteDefinition {
   return { method, path, propertyKey, handler, options };
+}
+
+function enrichRouteOptions(
+  controller: object,
+  path: string,
+  options: RouteDefinition["options"],
+  propertyKey?: PropertyKey,
+): RouteDefinition["options"] {
+  const params = inferParamsSchema(path);
+  const request = params && !options?.request?.params
+    ? { ...options?.request, params }
+    : options?.request;
+
+  return {
+    ...options,
+    operationId: options?.operationId ?? propertyKey?.toString(),
+    request,
+    tags: options?.tags ?? [getControllerTag(controller)],
+  };
+}
+
+function inferParamsSchema(
+  path: string,
+): z.ZodObject<Record<string, z.ZodString>> | undefined {
+  const entries = [...path.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) =>
+    [
+      match[1],
+      z.string(),
+    ] as const
+  );
+
+  if (entries.length === 0) return undefined;
+
+  return z.object(Object.fromEntries(entries) as Record<string, z.ZodString>);
 }

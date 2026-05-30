@@ -1,3 +1,4 @@
+import { HttpStatus } from "../http-status.enum.ts";
 import type { Middleware } from "../types.ts";
 import { appendVary } from "./append-vary.util.ts";
 import { corsAllowedHeaders } from "./cors-allowed-headers.util.ts";
@@ -21,7 +22,7 @@ export function cors(options: CorsOptions = {}): Middleware {
       ctx.request.headers.has("access-control-request-method");
 
     const response = isPreflight
-      ? new Response(null, { status: 204 })
+      ? new Response(null, { status: HttpStatus.NO_CONTENT })
       : await next();
 
     if (!allowedOrigin) {

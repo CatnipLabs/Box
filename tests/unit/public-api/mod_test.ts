@@ -1,10 +1,18 @@
 import { assertEquals } from "@std/assert";
 import { Box } from "../../../src/mod.ts";
 
-Deno.test("Public API: Box exposes App and json helper for hello-world", async () => {
-  const app = new Box.App();
+Deno.test("Public API: Box exposes declarative createApp for hello-world", async () => {
+  @Box.Controller("/health")
+  class HealthController {
+    @Box.Get()
+    public health(): { ok: true } {
+      return { ok: true };
+    }
+  }
 
-  app.get("/health", () => Box.json({ ok: true }));
+  const app = Box.createApp({
+    controllers: [HealthController],
+  });
 
   const response = await app.fetch(new Request("http://localhost/health"));
 

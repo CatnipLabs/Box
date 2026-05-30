@@ -1,9 +1,5 @@
 import { type Body, Box, type Param, z } from "../../src/mod.ts";
 
-const UserIdParams = z.object({
-  id: z.string().min(1),
-});
-
 const CreateUserRequest = z.object({
   name: z.string().min(1),
 });
@@ -15,7 +11,7 @@ const UserResponse = z.object({
 
 type User = z.infer<typeof UserResponse>;
 type CreateUserRequest = z.infer<typeof CreateUserRequest>;
-type UserIdParams = z.infer<typeof UserIdParams>;
+type UserIdParams = { id: string };
 
 @Box.Repository()
 class UsersRepository {
@@ -40,7 +36,11 @@ class UsersService {
     const user = this.users.findById(id);
 
     if (!user) {
-      throw new Box.HttpError(404, "User not found", "user_not_found");
+      throw new Box.HttpError(
+        Box.HttpStatus.NOT_FOUND,
+        "User not found",
+        "user_not_found",
+      );
     }
 
     return user;
@@ -57,12 +57,9 @@ class UsersController {
 
   @Box.Get(":id", {
     summary: "Find user by id",
-    operationId: "findUserById",
-    tags: ["Users"],
-    request: { params: UserIdParams },
     responses: {
-      200: { description: "User found", body: UserResponse },
-      404: { description: "User not found" },
+      [Box.HttpStatus.OK]: { description: "User found", body: UserResponse },
+      [Box.HttpStatus.NOT_FOUND]: { description: "User not found" },
     },
   })
   public findById(input: Param<UserIdParams>): User {
@@ -70,16 +67,17 @@ class UsersController {
   }
 
   @Box.Post("/", {
-    status: 201,
+    status: Box.HttpStatus.CREATED,
     summary: "Create user",
-    operationId: "createUser",
-    tags: ["Users"],
     request: {
       body: CreateUserRequest,
       bodyMaxBytes: 16_384,
     },
     responses: {
-      201: { description: "User created", body: UserResponse },
+      [Box.HttpStatus.CREATED]: {
+        description: "User created",
+        body: UserResponse,
+      },
     },
   })
   public create(input: Body<CreateUserRequest>): User {
