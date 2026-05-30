@@ -7,14 +7,17 @@ import { requestLogger } from "./presentation/http/logging/index.ts";
 import { Controller } from "./presentation/controllers/index.ts";
 import { App } from "./presentation/http/app.ts";
 import { readJson, readText } from "./presentation/http/body.ts";
+import { createOpenApiDocument } from "./presentation/http/docs/index.ts";
 import { badRequest, HttpError, notFound } from "./presentation/http/errors.ts";
 import { empty, json, redirect, text } from "./presentation/http/response.ts";
 import { cors, secureHeaders } from "./presentation/http/security.ts";
+import { z } from "zod";
 
-export * from "./presentation/core/index.ts";
+export * from "./core/index.ts";
 export * from "./presentation/http/index.ts";
-export * from "./presentation/logger/index.ts";
+export * from "./logger/index.ts";
 export * from "./infra/persistence/kv/index.ts";
+export { z } from "zod";
 
 const Log = {
   Logger,
@@ -32,6 +35,7 @@ export const Box = {
   Service,
   badRequest,
   cors,
+  createOpenApiDocument,
   empty,
   json,
   notFound,
@@ -41,4 +45,5 @@ export const Box = {
   requestLogger,
   secureHeaders,
   text,
+  z,
 };

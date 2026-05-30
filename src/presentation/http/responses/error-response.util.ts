@@ -1,3 +1,4 @@
+import { safeJsonValue } from "../../../core/serialization/index.ts";
 import type { HttpError } from "../errors.ts";
 
 export function errorResponse(
@@ -18,7 +19,7 @@ export function errorResponse(
     request.headers.get("x-correlation-id");
 
   if (error.details !== undefined) {
-    errorBody.details = error.details;
+    errorBody.details = safeJsonValue(error.details);
   }
 
   if (requestId) {

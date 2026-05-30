@@ -1,3 +1,5 @@
+import { safeStringify } from "../../core/serialization/index.ts";
+
 export function json(data: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
 
@@ -5,7 +7,7 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
     headers.set("content-type", "application/json; charset=utf-8");
   }
 
-  return new Response(JSON.stringify(data), { ...init, headers });
+  return new Response(safeStringify(data), { ...init, headers });
 }
 
 export function text(body: string, init: ResponseInit = {}): Response {

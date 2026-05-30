@@ -26,7 +26,7 @@ ambientes serverless compatíveis com Fetch API.
 ## Deno local/server
 
 ```ts
-import { serve } from "box/adapters/deno";
+import { serve } from "@catniplabs/box/adapters/deno";
 import app from "./app.ts";
 
 serve(app);

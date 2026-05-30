@@ -5,6 +5,7 @@ export const DEFAULT_SECURE_HEADERS: Required<SecureHeadersOptions> = {
   crossOriginOpenerPolicy: "same-origin",
   crossOriginResourcePolicy: "same-origin",
   referrerPolicy: "no-referrer",
+  strictTransportSecurity: false,
   xContentTypeOptions: "nosniff",
   xDnsPrefetchControl: "off",
   xFrameOptions: "DENY",

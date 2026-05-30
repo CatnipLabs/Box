@@ -22,7 +22,8 @@ export class KvRepository<
   ) {
     super(entity);
     this.collection = options.collection ?? this.entityName;
-    this.mapper = options.mapper ?? defaultKvEntityMapper(entity);
+    this.mapper = options.mapper ??
+      defaultKvEntityMapper(entity, options.hydrator);
   }
 
   public keyOf(id: TEntity["id"]): KvKey {

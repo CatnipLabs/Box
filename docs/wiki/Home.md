@@ -30,7 +30,7 @@ para preservar previsibilidade e performance em serverless.
 ## Hello world
 
 ```ts
-import { Box } from "box";
+import { Box } from "@catniplabs/box";
 
 const app = new Box.App();
 
@@ -46,18 +46,18 @@ export default {
 
 O pacote expõe os seguintes submódulos:
 
-| Submódulo           | Uso                                                        |
-| ------------------- | ---------------------------------------------------------- |
-| `box` ou `box/http` | Core HTTP, App, rotas, middlewares, responses e errors     |
-| `box/core`          | Bases DDD: `Entity`, `Repository`, `Service`, `Controller` |
-| `box/orm`           | Persistência e `KvRepository` para Deno KV                 |
-| `box/logger`        | Logger estruturado                                         |
-| `box/adapters/deno` | Adapter para rodar com Deno local/server                   |
+| Submódulo                                   | Uso                                                        |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| `@catniplabs/box` ou `@catniplabs/box/http` | Core HTTP, App, rotas, middlewares, responses e errors     |
+| `@catniplabs/box/core`                      | Bases DDD: `Entity`, `Repository`, `Service`, `Controller` |
+| `@catniplabs/box/orm`                       | Persistência e `KvRepository` para Deno KV                 |
+| `@catniplabs/box/logger`                    | Logger estruturado                                         |
+| `@catniplabs/box/adapters/deno`             | Adapter para rodar com Deno local/server                   |
 
 ## Exemplo enterprise-style
 
 ```ts
-import { Box } from "box";
+import { Box } from "@catniplabs/box";
 
 class User extends Box.Entity<string> {
   constructor(

@@ -9,4 +9,5 @@ export type {
   Next,
   Params,
   State,
+  ValidatedRequest,
 } from "./types/index.ts";
