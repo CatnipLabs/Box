@@ -1,19 +1,19 @@
 # Box
 
-Box é um framework pequeno para APIs REST em TypeScript, focado em simplicidade,
-Web Standards, Serverless/Edge e baixo cold start.
+Box is a small TypeScript framework for REST APIs, focused on simplicity, Web
+Standards, Serverless/Edge runtimes, and low cold starts.
 
-A ideia central é direta: `Request` entra, `Response` sai. Sem decorators,
-reflection, auto-discovery por filesystem, DI container ou dependências pesadas
-no core HTTP.
+The core idea is direct: `Request` in, `Response` out. No decorators,
+reflection, filesystem auto-discovery, DI container, or heavy dependencies in
+the HTTP core.
 
-## Instalação
+## Installation
 
 ```bash
 deno add jsr:@catniplabs/box
 ```
 
-Imports recomendados:
+Recommended imports:
 
 ```ts
 import { Box } from "@catniplabs/box";
@@ -23,8 +23,8 @@ import { KvRepository } from "@catniplabs/box/orm";
 import { serve } from "@catniplabs/box/adapters/deno";
 ```
 
-Durante desenvolvimento local deste repositório, os exemplos importam de
-`../../src/mod.ts`. Em aplicações consumidoras, prefira os imports JSR acima.
+During local development in this repository, examples import from
+`../../src/mod.ts`. In consumer applications, prefer the JSR imports above.
 
 ## Hello world
 
@@ -40,7 +40,7 @@ export default {
 };
 ```
 
-## Rotas com params e query
+## Routes with params and query
 
 ```ts
 const app = new Box.App();
@@ -53,11 +53,11 @@ app.get("/users/:id", (ctx) => {
 });
 ```
 
-## Controllers, Services, Repositories e DDD
+## Controllers, Services, Repositories, and DDD
 
-Para APIs maiores, o Box orienta o código para um fluxo parecido com NestJS/C#,
-mas sem decorators, reflection ou auto-discovery no caminho quente. O registro é
-explícito para preservar cold start em serverless.
+For larger APIs, Box guides code toward a NestJS/C#-style flow, but without
+decorators, reflection, or auto-discovery in the hot path. Registration is
+explicit to preserve serverless cold starts.
 
 ```ts
 import { Box } from "@catniplabs/box";
@@ -70,7 +70,7 @@ class User extends Box.Entity<string> {
 
 class UsersRepository extends Box.Repository<User> {
   constructor() {
-    super(User); // precisa ser uma entidade que estende Box.Entity
+    super(User); // must be an entity that extends Box.Entity
   }
 
   findById(id: string): User | undefined {
@@ -109,19 +109,19 @@ const app = new Box.App();
 app.controller(new UsersController(new UsersService(new UsersRepository())));
 ```
 
-Esse padrão dá uma base DDD simples:
+This pattern provides a simple DDD foundation:
 
-- `Entity`: raiz de entidade de domínio.
-- `Repository<TEntity extends Entity>`: força o repositório a declarar qual
-  entidade de domínio ele persiste.
-- `Service`: ponto para regras de aplicação/domínio.
-- `Controller`: expõe rotas REST por composição explícita.
+- `Entity`: root base class for domain entities.
+- `Repository<TEntity extends Entity>`: forces the repository to declare which
+  domain entity it persists.
+- `Service`: place for application/domain rules.
+- `Controller`: exposes REST routes through explicit composition.
 
-## ORM sobre Deno KV
+## ORM over Deno KV
 
-O primeiro adapter ORM do Box é o `KvRepository`, uma abstração leve sobre Deno
-KV orientada a entidades de domínio. O usuário não escreve queries manuais: ele
-usa CRUD tipado e um query builder fluente.
+Box's first ORM adapter is `KvRepository`, a lightweight abstraction over Deno
+KV oriented around domain entities. Users do not write manual queries: they use
+typed CRUD and a fluent query builder.
 
 ```ts
 import { Box } from "@catniplabs/box";
@@ -151,10 +151,10 @@ const adults = await users
   .all();
 ```
 
-O repositório hidrata novamente a entidade concreta, então métodos da classe de
-domínio continuam disponíveis após `findById`, `all` ou `first`.
+The repository hydrates the concrete entity again, so domain class methods
+remain available after `findById`, `all`, or `first`.
 
-Operadores iniciais do query builder:
+Initial query builder operators:
 
 - `eq`
 - `ne`
@@ -164,17 +164,17 @@ Operadores iniciais do query builder:
 - `lte`
 - `contains`
 
-A implementação atual faz scan por prefixo da collection (`[collection, id]`) e
-aplica filtros em memória. Quando não há `orderBy`, `limit()`/`offset()` usam
-parada antecipada para não iterar mais itens que o necessário para preencher a
-página. Consultas ordenadas ainda precisam materializar os candidatos antes da
-ordenação. Para consultas grandes em produção, modele access patterns/índices
-secundários sobre Deno KV antes de depender de scans globais.
+The current implementation scans by collection prefix (`[collection, id]`) and
+applies filters in memory. When there is no `orderBy`, `limit()`/`offset()` stop
+early so they do not iterate more items than needed to fill the page. Ordered
+queries still need to materialize candidates before sorting. For large
+production queries, model access patterns/secondary indexes over Deno KV before
+depending on global scans.
 
-Por padrão, o mapper de KV reidrata a entidade pelo prototype para preservar
-métodos sem chamar o constructor. Isso é conveniente para entidades simples, mas
-pode burlar invariantes de domínio. Em entidades ricas, forneça `mapper` ou
-`hydrator` explícito:
+By default, the KV mapper rehydrates the entity through its prototype to
+preserve methods without calling the constructor. This is convenient for simple
+entities, but it can bypass domain invariants. For rich entities, provide an
+explicit `mapper` or `hydrator`:
 
 ```ts
 const users = new Box.KvRepository(User, kv, {
@@ -189,7 +189,7 @@ const users = new Box.KvRepository(User, kv, {
 });
 ```
 
-## Métodos suportados
+## Supported methods
 
 - `app.get(path, handler, options?)`
 - `app.post(path, handler, options?)`
@@ -201,9 +201,9 @@ const users = new Box.KvRepository(User, kv, {
 - `app.controller(controller)`
 - `app.fetch(request)`
 
-## Contexto do handler
+## Handler context
 
-Cada handler recebe um objeto simples:
+Each handler receives a simple object:
 
 ```ts
 interface Context {
@@ -223,12 +223,11 @@ interface Context {
 }
 ```
 
-## Documentação OpenAPI + Scalar com Zod
+## OpenAPI + Scalar documentation with Zod
 
-O Box gera `/openapi.json` e uma página bonita com Scalar em `/docs` a partir
-dos contratos Zod declarados nas rotas. A documentação só é exposta quando você
-habilita explicitamente `docs`, então é simples ligar em dev/staging e desligar
-em produção.
+Box generates `/openapi.json` and a polished Scalar page at `/docs` from the Zod
+contracts declared on routes. Documentation is only exposed when you explicitly
+enable `docs`, so it is easy to enable in dev/staging and disable in production.
 
 ```ts
 import { Box, z } from "@catniplabs/box";
@@ -267,7 +266,7 @@ app.post("/users", (ctx) => {
 });
 ```
 
-A mesma API funciona em controllers:
+The same API works in controllers:
 
 ```ts
 class UsersController extends Box.Controller {
@@ -289,17 +288,17 @@ class UsersController extends Box.Controller {
 }
 ```
 
-Detalhes importantes:
+Important details:
 
-- `request.params`, `request.query`, `request.headers` e `request.body` aceitam
-  schemas Zod.
-- O request é validado antes do handler; em caso inválido, o Box retorna `400`
-  no contrato universal de erro.
-- Valores parseados/coagidos pelo Zod ficam em `ctx.validated`.
-- `request.bodyMaxBytes` limita o tamanho do JSON validado, com padrão seguro de
-  `1MB` herdado do parser HTTP.
-- Rotas com `{ docs: false }` não entram no OpenAPI.
-- Para mudar paths: `docs: { path: "/reference", openApiPath: "/schema.json" }`.
+- `request.params`, `request.query`, `request.headers`, and `request.body`
+  accept Zod schemas.
+- The request is validated before the handler; when invalid, Box returns `400`
+  using the universal error contract.
+- Values parsed/coerced by Zod are available in `ctx.validated`.
+- `request.bodyMaxBytes` limits the validated JSON size, with the safe `1MB`
+  default inherited from the HTTP parser.
+- Routes with `{ docs: false }` do not appear in OpenAPI.
+- To change paths: `docs: { path: "/reference", openApiPath: "/schema.json" }`.
 
 ## Middlewares
 
@@ -317,10 +316,9 @@ app.use(async (ctx, next) => {
 
 ## Logs
 
-O Box inclui um logger leve, dependency-free, com níveis no estilo NestJS e
-suporte a registros estruturados para produção. O nível configurado funciona
-como threshold: `INFO` emite `ERROR`, `WARN` e `INFO`, mas ignora `DEBUG` e
-`TRACE`.
+Box includes a lightweight, dependency-free logger with NestJS-style levels and
+structured records for production. The configured level works as a threshold:
+`INFO` emits `ERROR`, `WARN`, and `INFO`, but ignores `DEBUG` and `TRACE`.
 
 ```ts
 const logger = new Box.Log.Logger({
@@ -328,20 +326,20 @@ const logger = new Box.Log.Logger({
   level: Box.Log.Levels.INFO,
 });
 
-logger.info("usuário criado", { userId: "usr_123" });
-logger.debug("detalhes internos"); // ignorado quando level = INFO
+logger.info("user created", { userId: "usr_123" });
+logger.debug("internal details"); // ignored when level = INFO
 ```
 
-Para access logs HTTP, use o middleware explícito `requestLogger`. Ele registra
-método, path, status, duração e `requestId`/`correlationId` quando o header está
-presente, sem adicionar auto-scan ou decorators ao cold start:
+For HTTP access logs, use the explicit `requestLogger` middleware. It records
+method, path, status, duration, and `requestId`/`correlationId` when the header
+is present, without adding auto-scan or decorators to the cold start path:
 
 ```ts
 app.use(Box.requestLogger({ logger }));
 ```
 
-Também é possível enviar logs para um sink estruturado, útil em serverless para
-integrar com collectors ou testes:
+Logs can also be sent to a structured sink, useful in serverless environments
+for collectors or tests:
 
 ```ts
 const logger = new Box.Log.Logger({
@@ -353,16 +351,16 @@ const logger = new Box.Log.Logger({
 });
 ```
 
-## Segurança
+## Security
 
-O módulo HTTP já inclui um middleware leve de headers seguros, inspirado no
-Helmet, mas sem dependência externa:
+The HTTP module includes a lightweight secure headers middleware, inspired by
+Helmet but without an external dependency:
 
 ```ts
 app.use(Box.secureHeaders());
 ```
 
-Headers padrão:
+Default headers:
 
 - `x-content-type-options: nosniff`
 - `x-frame-options: DENY`
@@ -371,8 +369,7 @@ Headers padrão:
 - `cross-origin-opener-policy: same-origin`
 - `cross-origin-resource-policy: same-origin`
 
-HSTS é opt-in para evitar acionar políticas HTTPS permanentes em
-desenvolvimento:
+HSTS is opt-in to avoid enabling permanent HTTPS policies during development:
 
 ```ts
 app.use(Box.secureHeaders({
@@ -380,11 +377,11 @@ app.use(Box.secureHeaders({
 }));
 ```
 
-O middleware não sobrescreve headers já definidos pelo handler e permite
-desabilitar/alterar cada header por opção.
+The middleware does not overwrite headers already defined by the handler and
+allows each header to be disabled or changed through options.
 
-CORS também é nativo e funciona para requests reais e preflight global sem
-precisar registrar manualmente uma rota `OPTIONS`:
+CORS is also built in and works for real requests and global preflight without
+manually registering an `OPTIONS` route:
 
 ```ts
 app.use(Box.cors({
@@ -396,11 +393,11 @@ app.use(Box.cors({
 }));
 ```
 
-Por padrão `origin` é `"*"`. Para APIs com cookies/credenciais, configure uma
-allowlist explícita; `credentials: true` com wildcard é rejeitado no startup
-para evitar configuração inválida em browsers.
+By default, `origin` is `"*"`. For APIs with cookies/credentials, configure an
+explicit allowlist; `credentials: true` with wildcard is rejected at startup to
+avoid an invalid browser configuration.
 
-## Respostas
+## Responses
 
 ```ts
 Box.json({ ok: true });
@@ -409,7 +406,7 @@ Box.empty();
 Box.redirect("https://example.com");
 ```
 
-## Erros HTTP e custom exceptions
+## HTTP errors and custom exceptions
 
 ```ts
 class UserNotFound extends Box.HttpError {
@@ -423,8 +420,8 @@ app.get("/users/:id", () => {
 });
 ```
 
-Erros inesperados retornam `500` com uma resposta segura, sem vazar stack trace.
-Todas as respostas de erro seguem o contrato universal:
+Unexpected errors return `500` with a safe response, without leaking stack
+traces. All error responses follow the universal contract:
 
 ```json
 {
@@ -442,15 +439,15 @@ Todas as respostas de erro seguem o contrato universal:
 }
 ```
 
-`requestId` é preenchido automaticamente a partir dos headers `x-request-id` ou
-`x-correlation-id` quando presentes.
+`requestId` is filled automatically from the `x-request-id` or
+`x-correlation-id` headers when present.
 
 ## Body helpers
 
-`ctx.json()` e `ctx.text()` aplicam limite de tamanho por `Content-Length` antes
-de consumir o stream e também interrompem a leitura assim que o limite real é
-ultrapassado. Isso evita materializar payloads grandes em memória em runtimes
-serverless.
+`ctx.json()` and `ctx.text()` apply a size limit through `Content-Length` before
+consuming the stream and also stop reading as soon as the real limit is
+exceeded. This avoids materializing large payloads in memory in serverless
+runtimes.
 
 ```ts
 app.post("/users", async (ctx) => {
@@ -468,10 +465,10 @@ app.post("/users", async (ctx) => {
 
 ## Serverless/Edge
 
-O core usa a Fetch API nativa. Isso permite o mesmo app em runtimes Fetch-first
-como Deno Deploy, Cloudflare Workers e outros ambientes Edge.
+The core uses the native Fetch API. This lets the same app run in Fetch-first
+runtimes such as Deno Deploy, Cloudflare Workers, and other Edge environments.
 
-Para Deno local/server:
+For local/server Deno:
 
 ```ts
 import { serve } from "@catniplabs/box/adapters/deno";
@@ -480,12 +477,12 @@ import app from "./app.ts";
 serve(app);
 ```
 
-## Exemplos
+## Examples
 
 - `examples/hello-world/main.ts`
 - `examples/rest-api/main.ts`
 
-## Desenvolvimento
+## Development
 
 ```bash
 deno task fmt
@@ -495,20 +492,20 @@ deno task test
 deno task bench
 ```
 
-Medição simples de cold start:
+Simple cold start measurement:
 
 ```bash
 deno run scripts/measure_startup.ts
 ```
 
-## Submódulos
+## Submodules
 
-- `@catniplabs/box`: bundle de conveniência com HTTP, DDD, ORM e logger.
-- `@catniplabs/box/http`: core HTTP leve para hot paths serverless.
-- `@catniplabs/box/core`: bases DDD (`Entity`, `Repository`, `Service`,
+- `@catniplabs/box`: convenience bundle with HTTP, DDD, ORM, and logger.
+- `@catniplabs/box/http`: lightweight HTTP core for serverless hot paths.
+- `@catniplabs/box/core`: DDD bases (`Entity`, `Repository`, `Service`,
   `Controller`).
-- `@catniplabs/box/orm`: abstrações de persistência, incluindo `KvRepository`
-  para Deno KV.
-- `@catniplabs/box/adapters/deno`: adapter Deno.
-- `@catniplabs/box/logger`: logger estruturado, mantido fora do caminho quente
-  do core HTTP.
+- `@catniplabs/box/orm`: persistence abstractions, including `KvRepository` for
+  Deno KV.
+- `@catniplabs/box/adapters/deno`: Deno adapter.
+- `@catniplabs/box/logger`: structured logger, kept outside the HTTP core hot
+  path.

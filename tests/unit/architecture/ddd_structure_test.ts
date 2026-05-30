@@ -65,7 +65,7 @@ function relativeToSrc(file: URL): string {
 
 Deno.test({
   name:
-    "Architecture: src usa somente domain/application/infra/presentation na raiz",
+    "Architecture: src uses only domain/application/infra/presentation at the root",
   permissions: { read: [sourceRoot] },
   async fn() {
     const forbiddenEntries: string[] = [];
@@ -81,7 +81,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Architecture: nomes de camadas aparecem somente na raiz de src",
+  name: "Architecture: layer names appear only at the src root",
   permissions: { read: [sourceRoot] },
   async fn() {
     const forbiddenDirectories: string[] = [];
@@ -104,8 +104,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "Architecture: cada arquivo de produção declara no máximo uma definição",
+  name: "Architecture: each production file declares at most one definition",
   permissions: { read: [sourceRoot] },
   async fn() {
     const violations: Array<{ file: string; definitions: string[] }> = [];
@@ -124,7 +123,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Architecture: dependências entre camadas respeitam Clean Architecture",
+  name: "Architecture: layer dependencies follow Clean Architecture",
   permissions: { read: [sourceRoot] },
   async fn() {
     const violations: Array<
@@ -165,7 +164,7 @@ Deno.test({
             file: sourceRelative,
             importPath,
             reason:
-              `${sourceLayer} não deve depender de ${targetLayer} pela matriz Clean Architecture`,
+              `${sourceLayer} must not depend on ${targetLayer} according to the Clean Architecture matrix`,
           });
         }
       }

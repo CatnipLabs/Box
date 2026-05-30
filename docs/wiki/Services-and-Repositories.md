@@ -1,8 +1,8 @@
-# Services e Repositories
+# Services and Repositories
 
 ## Service
 
-Services representam regras de aplicação e orquestram repositórios.
+Services represent application rules and orchestrate repositories.
 
 ```ts
 class UsersService extends Box.Service {
@@ -21,9 +21,9 @@ class UsersService extends Box.Service {
 }
 ```
 
-## Repository base
+## Base Repository
 
-Um repository deve receber uma classe de entidade.
+A repository must receive an entity class.
 
 ```ts
 class UsersRepository extends Box.Repository<User> {
@@ -33,9 +33,9 @@ class UsersRepository extends Box.Repository<User> {
 }
 ```
 
-## Repository com Deno KV
+## Repository with Deno KV
 
-Para persistência real, use `Box.KvRepository`.
+For real persistence, use `Box.KvRepository`.
 
 ```ts
 class UsersRepository extends Box.KvRepository<User> {
@@ -45,7 +45,7 @@ class UsersRepository extends Box.KvRepository<User> {
 }
 ```
 
-Métodos principais:
+Main methods:
 
 ```ts
 await users.save(user);
@@ -57,7 +57,7 @@ users.query();
 
 ## Custom repositories
 
-Você pode estender `KvRepository` para criar métodos de domínio.
+You can extend `KvRepository` to create domain methods.
 
 ```ts
 class UsersRepository extends Box.KvRepository<User> {
@@ -75,7 +75,7 @@ class UsersRepository extends Box.KvRepository<User> {
 }
 ```
 
-## Testabilidade
+## Testability
 
-Como as dependências são explícitas, testes podem instanciar
-services/controllers diretamente com doubles ou stores em memória.
+Because dependencies are explicit, tests can instantiate services/controllers
+directly with doubles or in-memory stores.

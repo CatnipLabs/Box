@@ -1,94 +1,93 @@
 # BOX Enterprise REST Framework Roadmap
 
-> **For Hermes:** evoluir em fatias verticais com TDD, preservando cold start.
-> Nada de decorators/reflection/auto-scan no core quente.
+> **For Hermes:** evolve in vertical slices with TDD, preserving cold start. No
+> decorators/reflection/auto-scan in the hot core.
 
-**Goal:** levar o Box de um core HTTP mínimo para um framework REST enterprise,
-serverless-first, com DX similar a NestJS/C# sem perder performance de cold
-start.
+**Goal:** take Box from a minimal HTTP core to an enterprise REST framework,
+serverless-first, with DX similar to NestJS/C# without losing cold start
+performance.
 
-**Architecture:** core pequeno baseado em Web Fetch API; módulos opcionais para
-DDD, OpenAPI/Scalar, segurança, ORM Deno KV, logging e testes/performance.
-Classes base definem contratos; registro explícito evita filesystem scan e
+**Architecture:** small core based on the Web Fetch API; optional modules for
+DDD, OpenAPI/Scalar, security, Deno KV ORM, logging, and testing/performance.
+Base classes define contracts; explicit registration avoids filesystem scan and
 reflection.
 
-**Tech Stack:** Deno + TypeScript, Fetch API, Deno KV adapter opcional, OpenAPI
-3.1 + Scalar UI opcional, `deno test`/coverage/bench.
+**Tech Stack:** Deno + TypeScript, Fetch API, optional Deno KV adapter, optional
+OpenAPI 3.1 + Scalar UI, `deno test`/coverage/bench.
 
 ---
 
 ## Milestone 1 — Application model / DDD foundation
 
-1. Criar contratos base: `Entity`, `Repository<TEntity>`, `Service`,
+1. Create base contracts: `Entity`, `Repository<TEntity>`, `Service`,
    `Controller`.
-2. Adicionar `app.controller(controller)` para registrar rotas de controllers de
-   forma explícita.
-3. Garantir que `Repository` só aceite entidade que estende `Entity`.
-4. Exportar como `box/core` e também em `Box.*`.
-5. Documentar padrão controller/service/repository no README.
+2. Add `app.controller(controller)` to register controller routes explicitly.
+3. Ensure that `Repository` only accepts an entity that extends `Entity`.
+4. Export as `box/core` and also in `Box.*`.
+5. Document the controller/service/repository pattern in the README.
 6. Gates: `deno fmt --check`, `deno lint`, `deno check src/mod.ts`, `deno test`.
 
-## Milestone 2 — Error contract e custom exceptions
+## Milestone 2 — Error contract and custom exceptions
 
-1. Expandir `HttpError` para contrato universal: `statusCode`, `code`,
-   `message`, `details`, `path`, `requestId`, `timestamp`.
-2. Criar `Exception`/custom exceptions base com helpers por status.
-3. Criar error handler configurável sem vazar stack.
-4. Garantir tests para erro esperado, inesperado, validation-like e custom
-   exception.
+1. Expand `HttpError` to a universal contract: `statusCode`, `code`, `message`,
+   `details`, `path`, `requestId`, `timestamp`.
+2. Create base `Exception`/custom exceptions with helpers by status.
+3. Create a configurable error handler without leaking the stack.
+4. Ensure tests for expected error, unexpected error, validation-like error, and
+   custom exception.
 
-## Milestone 3 — Segurança nativa
+## Milestone 3 — Native security
 
-1. Middlewares opcionais `cors()` e `secureHeaders()` estilo Helmet.
-2. Defaults seguros: `x-content-type-options`, `x-frame-options`,
-   `referrer-policy`, `content-security-policy` configurável.
-3. Suporte a preflight CORS e allowlist por origem/método/header.
-4. Bench de overhead de middleware.
+1. Optional `cors()` and `secureHeaders()` middlewares in Helmet style.
+2. Secure defaults: `x-content-type-options`, `x-frame-options`,
+   `referrer-policy`, configurable `content-security-policy`.
+3. Support CORS preflight and allowlist by origin/method/header.
+4. Benchmark middleware overhead.
 
-## Milestone 4 — Logger enterprise
+## Milestone 4 — Enterprise logger
 
-1. Logger estruturado com levels, context/requestId, child logger e serializers
-   seguros.
-2. Middleware de access log com duração, status, path, method e erro.
-3. No core hot path, logger continua opcional/importado sob demanda.
+1. Structured logger with levels, context/requestId, child logger, and safe
+   serializers.
+2. Access log middleware with duration, status, path, method, and error.
+3. In the core hot path, the logger remains optional/imported on demand.
 
 ## Milestone 5 — ORM / Deno KV abstraction
 
-1. `KvEntity`, `KvRepository`, query builder tipado e índices declarativos.
-2. CRUD simples sem query manual.
-3. Filtros compostos, paginação, ordenação, prefix/range queries e transações
-   atômicas quando suportadas pelo KV.
-4. Documentar limites reais do Deno KV: queries complexas dependem de
-   índices/materialização; não prometer joins arbitrários sem custo.
+1. `KvEntity`, `KvRepository`, typed query builder, and declarative indexes.
+2. Simple CRUD without manual query.
+3. Composite filters, pagination, sorting, prefix/range queries, and atomic
+   transactions when supported by KV.
+4. Document the real limits of Deno KV: complex queries depend on
+   indexes/materialization; do not promise arbitrary joins without cost.
 
 ## Milestone 6 — Auto documentation OpenAPI + Scalar
 
-1. Metadata explícita por rota/controller/DTO sem reflection pesada.
-2. Gerador OpenAPI 3.1 a partir de controllers, DTO schemas e errors.
-3. Rota `/docs` com Scalar UI e `/openapi.json`.
-4. Módulo opcional para não penalizar cold start de APIs sem docs.
+1. Explicit metadata by route/controller/DTO without heavy reflection.
+2. OpenAPI 3.1 generator from controllers, DTO schemas, and errors.
+3. `/docs` route with Scalar UI and `/openapi.json`.
+4. Optional module to avoid penalizing the cold start of APIs without docs.
 
-## Milestone 7 — Testing, coverage e performance
+## Milestone 7 — Testing, coverage, and performance
 
-1. Configurar coverage gate para 100% unitário e integração.
-2. Criar testes integrados com apps exemplo reais.
-3. Scripts de carga/cold start com thresholds explícitos.
-4. CI documentado para fmt/lint/check/test/coverage/bench.
+1. Configure coverage gate for 100% unit and integration coverage.
+2. Create integrated tests with real example apps.
+3. Load/cold start scripts with explicit thresholds.
+4. Documented CI for fmt/lint/check/test/coverage/bench.
 
 ## Milestone 8 — Open source readiness
 
-1. README completo, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, CHANGELOG.
-2. Exemplos: hello-world, CRUD DDD, KV repository, auth/security, docs Scalar.
-3. Publicação JSR/npm se necessário.
-4. Templates de issue/PR e guia de versionamento.
+1. Complete README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, CHANGELOG.
+2. Examples: hello-world, CRUD DDD, KV repository, auth/security, Scalar docs.
+3. JSR/npm publishing if necessary.
+4. Issue/PR templates and versioning guide.
 
-## Primeira fatia a implementar agora
+## First slice to implement now
 
-Implementar Milestone 1 em TDD:
+Implement Milestone 1 with TDD:
 
-- Teste RED para `app.controller(new UsersController(...))` registrando rotas
-  com prefixo.
-- Teste RED para `Repository` exigindo `Entity` base.
-- Implementar `src/core/*` e integração em `src/http/app.ts`.
-- Atualizar exports e README.
-- Rodar todos os gates reais.
+- RED test for `app.controller(new UsersController(...))` registering routes
+  with prefix.
+- RED test for `Repository` requiring the base `Entity`.
+- Implement `src/core/*` and integration in `src/http/app.ts`.
+- Update exports and README.
+- Run all real gates.

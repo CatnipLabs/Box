@@ -1,12 +1,12 @@
-# Começando
+# Getting Started
 
-## Requisitos
+## Requirements
 
-- Deno atual.
+- A current Deno version.
 - TypeScript.
-- Runtime compatível com Fetch API para deploy serverless/edge.
+- A Fetch API-compatible runtime for serverless/edge deployment.
 
-## Estrutura mínima
+## Minimal structure
 
 ```ts
 import { Box } from "@catniplabs/box";
@@ -20,21 +20,21 @@ export default {
 };
 ```
 
-Durante o desenvolvimento dentro do repositório, os exemplos usam:
+During development inside the repository, examples use:
 
 ```ts
 import { Box } from "../../src/mod.ts";
 ```
 
-Em um consumidor do pacote, use o import público configurado pelo pacote:
+In a package consumer, use the public package import:
 
 ```ts
 import { Box } from "@catniplabs/box";
 ```
 
-## Rodando localmente com Deno
+## Running locally with Deno
 
-Para um app exportado como Fetch handler, use o adapter Deno:
+For an app exported as a Fetch handler, use the Deno adapter:
 
 ```ts
 import { serve } from "@catniplabs/box/adapters/deno";
@@ -43,7 +43,7 @@ import app from "./app.ts";
 serve(app);
 ```
 
-## Rotas básicas
+## Basic routes
 
 ```ts
 const app = new Box.App();
@@ -68,9 +68,9 @@ app.post("/users", async (ctx) => {
 });
 ```
 
-## Contexto do handler
+## Handler context
 
-Cada handler recebe um contexto simples:
+Each handler receives a simple context:
 
 ```ts
 interface Context {
@@ -84,7 +84,7 @@ interface Context {
 }
 ```
 
-## Helpers de response
+## Response helpers
 
 ```ts
 Box.json({ ok: true });
@@ -93,7 +93,7 @@ Box.empty();
 Box.redirect("https://example.com");
 ```
 
-## Comandos do projeto
+## Project commands
 
 ```bash
 deno task fmt

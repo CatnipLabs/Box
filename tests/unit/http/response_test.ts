@@ -6,7 +6,7 @@ import {
   text,
 } from "../../../src/presentation/http/response.ts";
 
-Deno.test("Response: json define content-type e serializa objeto", async () => {
+Deno.test("Response: json sets content-type and serializes object", async () => {
   const response = json({ ok: true }, { status: 201 });
 
   assertEquals(response.status, 201);
@@ -17,7 +17,7 @@ Deno.test("Response: json define content-type e serializa objeto", async () => {
   assertEquals(await response.json(), { ok: true });
 });
 
-Deno.test("Response: text define content-type padrão", async () => {
+Deno.test("Response: text sets the default content-type", async () => {
   const response = text("hello", { status: 202 });
 
   assertEquals(response.status, 202);
@@ -28,14 +28,14 @@ Deno.test("Response: text define content-type padrão", async () => {
   assertEquals(await response.text(), "hello");
 });
 
-Deno.test("Response: empty retorna resposta sem body", async () => {
+Deno.test("Response: empty returns a response without a body", async () => {
   const response = empty();
 
   assertEquals(response.status, 204);
   assertEquals(await response.text(), "");
 });
 
-Deno.test("Response: redirect retorna Location e status", () => {
+Deno.test("Response: redirect returns Location and status", () => {
   const response = redirect("https://example.com/login", 302);
 
   assertEquals(response.status, 302);

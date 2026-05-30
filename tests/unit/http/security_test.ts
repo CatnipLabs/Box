@@ -5,7 +5,7 @@ import {
   secureHeaders,
 } from "../../../src/presentation/http/security.ts";
 
-Deno.test("Security: secureHeaders aplica headers seguros estilo Helmet", async () => {
+Deno.test("Security: secureHeaders applies Helmet-style secure headers", async () => {
   const app = new App();
 
   app.use(secureHeaders());
@@ -27,7 +27,7 @@ Deno.test("Security: secureHeaders aplica headers seguros estilo Helmet", async 
   );
 });
 
-Deno.test("Security: secureHeaders não sobrescreve header já definido", async () => {
+Deno.test("Security: secureHeaders does not overwrite an already defined header", async () => {
   const app = new App();
 
   app.use(secureHeaders());
@@ -42,7 +42,7 @@ Deno.test("Security: secureHeaders não sobrescreve header já definido", async 
   assertEquals(response.headers.get("x-frame-options"), "SAMEORIGIN");
 });
 
-Deno.test("Security: cors aplica headers em requests reais para origem permitida", async () => {
+Deno.test("Security: cors applies headers on real requests for an allowed origin", async () => {
   const app = new App();
 
   app.use(cors({ origin: ["https://app.example.com"], credentials: true }));
@@ -66,7 +66,7 @@ Deno.test("Security: cors aplica headers em requests reais para origem permitida
   assertEquals(await response.json(), { ok: true });
 });
 
-Deno.test("Security: cors não libera origem fora da allowlist", async () => {
+Deno.test("Security: cors does not allow origins outside the allowlist", async () => {
   const app = new App();
 
   app.use(cors({ origin: ["https://app.example.com"] }));
@@ -82,7 +82,7 @@ Deno.test("Security: cors não libera origem fora da allowlist", async () => {
   assertEquals(response.headers.get("access-control-allow-origin"), null);
 });
 
-Deno.test("Security: cors responde preflight global sem rota OPTIONS registrada", async () => {
+Deno.test("Security: cors responds to global preflight without a registered OPTIONS route", async () => {
   const app = new App();
 
   app.use(cors({
@@ -120,7 +120,7 @@ Deno.test("Security: cors responde preflight global sem rota OPTIONS registrada"
   assertEquals(response.headers.get("access-control-max-age"), "600");
 });
 
-Deno.test("Security: cors preserva Vary existente e evita duplicar Origin", async () => {
+Deno.test("Security: cors preserves existing Vary and avoids duplicating Origin", async () => {
   const app = new App();
 
   app.use(cors({ origin: ["https://app.example.com"] }));

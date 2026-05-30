@@ -58,7 +58,7 @@ class UsersController extends Controller {
   }
 }
 
-Deno.test("Core: app.controller registra rotas de controller com prefixo", async () => {
+Deno.test("Core: app.controller registers controller routes with a prefix", async () => {
   const app = new App();
   const controller = new UsersController(
     new UsersService(new UsersRepository()),
@@ -72,7 +72,7 @@ Deno.test("Core: app.controller registra rotas de controller com prefixo", async
   assertEquals(await bodyJson(response), { id: "42", name: "Ada" });
 });
 
-Deno.test("Core: controller normaliza prefixo e path das rotas", async () => {
+Deno.test("Core: controller normalizes route prefix and path", async () => {
   const app = new App();
   const controller = new UsersController(
     new UsersService(new UsersRepository()),
@@ -101,7 +101,7 @@ class MethodsController extends Controller {
   }
 }
 
-Deno.test("Core: Controller expõe helpers para todos os métodos REST", () => {
+Deno.test("Core: Controller exposes helpers for all REST methods", () => {
   const routes = new MethodsController().exposeAll();
 
   assertEquals(routes.map((route) => route.method), [
@@ -120,7 +120,7 @@ Deno.test("Core: Controller expõe helpers para todos os métodos REST", () => {
   ]);
 });
 
-Deno.test("Core: Repository exige Entity base", () => {
+Deno.test("Core: Repository requires the base Entity", () => {
   assertEquals(new UsersRepository().entityName, "User");
 
   class NotAnEntity {}
