@@ -21,11 +21,11 @@ class User extends Entity<string> {
   }
 }
 
-Deno.test("ORM KV: barrel legado exporta o mesmo KvRepository público", () => {
+Deno.test("ORM KV: legacy barrel exports the same public KvRepository", () => {
   assertEquals(LegacyKvRepository, KvRepository);
 });
 
-Deno.test("ORM KV: mapper customizado controla persistência e hidratação", async () => {
+Deno.test("ORM KV: custom mapper controls persistence and hydration", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, {
     collection: "users",
@@ -62,7 +62,7 @@ Deno.test("ORM KV: mapper customizado controla persistência e hidratação", as
   assertEquals((await users.findById("u1"))?.displayName(), "Ada#u1");
 });
 
-Deno.test("ORM KV: repository exige Entity e persiste por collection/id", async () => {
+Deno.test("ORM KV: repository requires Entity and persists by collection/id", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 
@@ -86,7 +86,7 @@ Deno.test("ORM KV: repository exige Entity e persiste por collection/id", async 
   });
 });
 
-Deno.test("ORM KV: deleteById remove entidade pelo id", async () => {
+Deno.test("ORM KV: deleteById removes entity by id", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 
@@ -96,7 +96,7 @@ Deno.test("ORM KV: deleteById remove entidade pelo id", async () => {
   assertEquals(await users.findById("u1"), undefined);
 });
 
-Deno.test("ORM KV: query fluente filtra, ordena, pagina e hidrata entidades", async () => {
+Deno.test("ORM KV: fluent query filters, sorts, paginates, and hydrates entities", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 
@@ -120,7 +120,7 @@ Deno.test("ORM KV: query fluente filtra, ordena, pagina e hidrata entidades", as
   ]);
 });
 
-Deno.test("ORM KV: first retorna primeira entidade encontrada ou undefined", async () => {
+Deno.test("ORM KV: first returns the first entity found or undefined", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 
@@ -136,7 +136,7 @@ Deno.test("ORM KV: first retorna primeira entidade encontrada ou undefined", asy
   );
 });
 
-Deno.test("ORM KV: all usa a collection padrão da entidade", async () => {
+Deno.test("ORM KV: all uses the entity default collection", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv);
 
@@ -147,7 +147,7 @@ Deno.test("ORM KV: all usa a collection padrão da entidade", async () => {
   assertEquals((await kv.get(["User", "u1"])).value !== null, true);
 });
 
-Deno.test("ORM KV: operadores de query cobrem comparações e contains em arrays", async () => {
+Deno.test("ORM KV: query operators cover comparisons and contains on arrays", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 
@@ -185,7 +185,7 @@ Deno.test("ORM KV: operadores de query cobrem comparações e contains em arrays
   );
 });
 
-Deno.test("ORM KV: orderBy trata valores iguais e ausentes de forma determinística", async () => {
+Deno.test("ORM KV: orderBy handles equal and missing values deterministically", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 

@@ -14,7 +14,7 @@ class User extends Entity<string> {
   }
 }
 
-Deno.test("ORM KV hardening: first não muta o limite do query builder", async () => {
+Deno.test("ORM KV hardening: first does not mutate the query builder limit", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 
@@ -27,7 +27,7 @@ Deno.test("ORM KV hardening: first não muta o limite do query builder", async (
   assertEquals((await query.all()).map((user) => user.id), ["u1", "u2"]);
 });
 
-Deno.test("ORM KV hardening: limit sem ordenação para de iterar após preencher a página", async () => {
+Deno.test("ORM KV hardening: limit without ordering stops iterating after filling the page", async () => {
   const kv = new MemoryKv();
   const users = new KvRepository(User, kv, { collection: "users" });
 

@@ -1,9 +1,9 @@
-# Logs, Erros e Exceptions
+# Logs, Errors, and Exceptions
 
 ## Logger
 
-BOX inclui logger leve e dependency-free, com níveis no estilo NestJS e suporte
-a registros estruturados.
+BOX includes a lightweight, dependency-free logger with NestJS-style levels and
+structured record support.
 
 ```ts
 const logger = new Box.Log.Logger({
@@ -11,26 +11,26 @@ const logger = new Box.Log.Logger({
   level: Box.Log.Levels.INFO,
 });
 
-logger.info("usuário criado", { userId: "usr_123" });
-logger.debug("detalhes internos");
+logger.info("user created", { userId: "usr_123" });
+logger.debug("internal details");
 ```
 
-## Níveis
+## Levels
 
-O nível configurado funciona como threshold.
+The configured level works as a threshold.
 
-Se o nível é `INFO`, o logger emite:
+If the level is `INFO`, the logger emits:
 
 - `ERROR`
 - `WARN`
 - `INFO`
 
-E ignora:
+And ignores:
 
 - `DEBUG`
 - `TRACE`
 
-## Sink estruturado
+## Structured sink
 
 ```ts
 const logger = new Box.Log.Logger({
@@ -42,20 +42,20 @@ const logger = new Box.Log.Logger({
 });
 ```
 
-## Access logs HTTP
+## HTTP access logs
 
 ```ts
 app.use(Box.requestLogger({ logger }));
 ```
 
-O middleware registra:
+The middleware records:
 
-- método HTTP
+- HTTP method
 - path
 - status code
-- duração
-- `requestId` ou `correlationId` quando presentes nos headers
-- resumo de erro quando a request falha
+- duration
+- `requestId` or `correlationId` when present in the headers
+- error summary when the request fails
 
 ## Custom exceptions
 
@@ -71,7 +71,7 @@ app.get("/users/:id", () => {
 });
 ```
 
-## Helpers de erro
+## Error helpers
 
 ```ts
 throw new Box.HttpError(404, "User not found", "user_not_found");
@@ -79,9 +79,9 @@ throw Box.badRequest("Invalid payload", { field: "name" });
 throw Box.notFound("Route not found");
 ```
 
-## Contrato universal de erro
+## Universal error contract
 
-Todas as respostas de erro seguem o mesmo formato.
+All error responses follow the same format.
 
 ```json
 {
@@ -99,4 +99,5 @@ Todas as respostas de erro seguem o mesmo formato.
 }
 ```
 
-Erros inesperados retornam `500` com resposta segura, sem vazar stack trace.
+Unexpected errors return `500` with a safe response, without leaking stack
+traces.

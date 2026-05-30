@@ -1,7 +1,7 @@
-# Segurança
+# Security
 
-BOX inclui middlewares de segurança modernos no core HTTP, sem dependências
-externas pesadas.
+BOX includes modern security middlewares in the HTTP core, without heavy
+external dependencies.
 
 ## Secure headers
 
@@ -9,9 +9,9 @@ externas pesadas.
 app.use(Box.secureHeaders());
 ```
 
-Headers padrão:
+Default headers:
 
-| Header                         | Valor padrão  |
+| Header                         | Default value |
 | ------------------------------ | ------------- |
 | `x-content-type-options`       | `nosniff`     |
 | `x-frame-options`              | `DENY`        |
@@ -20,8 +20,8 @@ Headers padrão:
 | `cross-origin-opener-policy`   | `same-origin` |
 | `cross-origin-resource-policy` | `same-origin` |
 
-O middleware não sobrescreve headers já definidos pelo handler e permite
-alterar/desabilitar headers via opções.
+The middleware does not overwrite headers already defined by the handler and
+allows headers to be changed or disabled through options.
 
 ## CORS
 
@@ -35,26 +35,26 @@ app.use(Box.cors({
 }));
 ```
 
-Por padrão, `origin` é `"*"`.
+By default, `origin` is `"*"`.
 
-Para APIs com cookies ou credenciais, use allowlist explícita.
+For APIs with cookies or credentials, use an explicit allowlist.
 
 ## Preflight
 
-O CORS nativo responde requests `OPTIONS` de preflight sem exigir rotas manuais.
+Built-in CORS answers preflight `OPTIONS` requests without requiring manual
+routes.
 
 ## Body limits
 
-Use os helpers de body com limite explícito para reduzir risco de payload
-excessivo.
+Use body helpers with explicit limits to reduce the risk of excessive payloads.
 
 ```ts
 const body = await ctx.json<{ name?: string }>({ maxBytes: 16_384 });
 const text = await ctx.text({ maxBytes: 8_192 });
 ```
 
-## Erros seguros
+## Safe errors
 
-Erros inesperados não vazam stack trace na resposta HTTP. O cliente recebe um
-contrato universal com status, código, mensagem, path, método, request id e
-timestamp.
+Unexpected errors do not leak stack traces in the HTTP response. The client
+receives a universal contract with status, code, message, path, method, request
+id, and timestamp.

@@ -1,52 +1,52 @@
-# Plano de code review e reorganização DDD/Clean Architecture do BOX
+# BOX code review and DDD/Clean Architecture reorganization plan
 
-## Objetivo
+## Objective
 
-Revisar a codebase inteira do framework BOX com foco em:
+Review the entire BOX framework codebase with a focus on:
 
-- Organização DDD / Clean Architecture.
-- SOLID e Clean Code.
-- Single Responsibility Principle: evitar arquivos com múltiplas
-  classes/interfaces públicas sem uma responsabilidade clara.
-- Separar testes das implementações.
-- Reduzir pastas “flat” com muitos arquivos soltos, usando subpastas por
-  responsabilidade.
-- Preservar cold start/serverless e compatibilidade da API pública.
-- Manter ou melhorar os gates atuais de teste, coverage, bench e startup.
+- DDD / Clean Architecture organization.
+- SOLID and Clean Code.
+- Single Responsibility Principle: avoid files with multiple public
+  classes/interfaces without a clear responsibility.
+- Separating tests from implementations.
+- Reducing "flat" folders with many loose files by using responsibility-based
+  subfolders.
+- Preserving cold start/serverless behavior and public API compatibility.
+- Maintaining or improving the current test, coverage, bench, and startup gates.
 
-Este plano é somente planejamento. Nenhuma implementação foi feita neste turno.
+This plan is planning-only. No implementation was done in this turn.
 
-## Contexto observado
+## Observed context
 
-Branch atual: `main`.
+Current branch: `main`.
 
-Há mudanças pendentes não commitadas relacionadas às etapas anteriores:
+There are pending uncommitted changes related to previous stages:
 
-- Core DDD: `src/core/`
+- DDD core: `src/core/`
 - HTTP app/errors/security
-- Logger estruturado e request logger
-- ORM KV inicial
-- README e exports
+- Structured logger and request logger
+- Initial KV ORM
+- README and exports
 
-Gates conhecidos da última rodada:
+Known gates from the last round:
 
 - `deno task test`: 68 passed / 0 failed
-- Coverage global: Branch 91.3%, Function 87.4%, Line 88.8%
+- Global coverage: Branch 91.3%, Function 87.4%, Line 88.8%
 - `src/orm/kv_repository.ts`: 100% branch/function/line
-- Bench atual aproximado:
+- Approximate current bench:
   - Create app: ~376 ns
   - Static GET: ~4.7 µs
   - Param GET: ~4.7 µs
-- Cold start aproximado:
+- Approximate cold start:
   - importMs ~1.18 ms
   - createAndRegisterMs ~0.17 ms
   - firstRequestMs ~0.41 ms
 
-## Achados principais do code review
+## Main code review findings
 
-### 1. Testes estão colocalizados com implementação
+### 1. Tests are colocated with implementation
 
-Hoje existem testes em `src/**`:
+Today there are tests under `src/**`:
 
 - `src/core/core_test.ts`
 - `src/http/app_test.ts`
@@ -56,13 +56,13 @@ Hoje existem testes em `src/**`:
 - `src/mod_test.ts`
 - `src/orm/kv_repository_test.ts`
 
-Problema:
+Problem:
 
-- Mistura código de produção e validação.
-- Dificulta leitura do pacote publicado.
-- Não escala bem para testes unitários, integração, performance e fixtures.
+- It mixes production code and validation.
+- It makes the published package harder to read.
+- It does not scale well for unit, integration, performance tests, and fixtures.
 
-Proposta:
+Proposal:
 
 ```text
 tests/
@@ -79,85 +79,85 @@ tests/
   fixtures/
 ```
 
-### 2. Arquivos com múltiplas responsabilidades claras
+### 2. Files with multiple clear responsibilities
 
-Arquivos que devem ser divididos primeiro:
+Files that should be split first:
 
 #### `src/orm/kv_repository.ts`
 
-Hoje concentra:
+Today it concentrates:
 
-- Tipos de key/id/entry.
-- Interface `KvStore`.
-- Interface `KvEntityMapper`.
-- Interface `KvRepositoryOptions`.
-- Classe `KvRepository`.
-- Classe `KvQueryBuilder`.
-- Tipos de query/sort/filter.
-- Helpers de comparação/filtro.
+- Key/id/entry types.
+- `KvStore` interface.
+- `KvEntityMapper` interface.
+- `KvRepositoryOptions` interface.
+- `KvRepository` class.
+- `KvQueryBuilder` class.
+- Query/sort/filter types.
+- Comparison/filter helpers.
 
-Problema: SRP quebrado. É o arquivo mais evidente para refatorar.
+Problem: broken SRP. This is the most obvious file to refactor.
 
 #### `src/logger/index.ts`
 
-Hoje concentra:
+Today it concentrates:
 
-- Classe `Logger`.
-- Interface `RequestLoggerOptions`.
-- Middleware `requestLogger`.
-- Helpers de request id, duração, erro e serialização.
+- `Logger` class.
+- `RequestLoggerOptions` interface.
+- `requestLogger` middleware.
+- Request id, duration, error, and serialization helpers.
 - Reexports.
 
-Problema: logger core e middleware HTTP são responsabilidades diferentes.
+Problem: core logger and HTTP middleware are different responsibilities.
 
 #### `src/http/security.ts`
 
-Hoje concentra:
+Today it concentrates:
 
 - CORS.
-- Secure headers estilo Helmet.
-- Tipos de CORS.
-- Tipos de secure headers.
-- Helpers de origin/header/vary.
+- Helmet-style secure headers.
+- CORS types.
+- Secure headers types.
+- Origin/header/vary helpers.
 
-Problema: CORS e secure headers são middlewares independentes.
+Problem: CORS and secure headers are independent middlewares.
 
 #### `src/http/app.ts`
 
-Hoje concentra:
+Today it concentrates:
 
-- Classe `App`.
-- Criação de contexto.
-- Detecção de preflight CORS.
-- Montagem de resposta universal de erro.
-- Join de paths de controller.
+- `App` class.
+- Context creation.
+- CORS preflight detection.
+- Universal error response assembly.
+- Controller path joining.
 
-Problema: `App` deveria orquestrar, não conter factories/formatadores/guards.
+Problem: `App` should orchestrate, not contain factories/formatters/guards.
 
 #### `src/http/errors.ts`
 
-Hoje concentra:
+Today it concentrates:
 
-- Interface `HttpErrorOptions` não usada diretamente no construtor atual.
-- Classe `HttpError`.
-- Factories `notFound`, `methodNotAllowed`, `badRequest`, `payloadTooLarge`.
+- `HttpErrorOptions` interface not used directly by the current constructor.
+- `HttpError` class.
+- `notFound`, `methodNotAllowed`, `badRequest`, `payloadTooLarge` factories.
 - `defaultCode`.
 
-Problema: mistura exception base, factories e política de code mapping.
+Problem: it mixes the base exception, factories, and code mapping policy.
 
 #### `src/logger/logger-constructor.schema.ts`
 
-Hoje concentra:
+Today it concentrates:
 
-- Tipos de log record/sink/clock/options.
-- Parser/schema manual.
-- Helpers internos de validação.
+- Log record/sink/clock/options types.
+- Manual parser/schema.
+- Internal validation helpers.
 
-Problema: contratos e validação estão juntos.
+Problem: contracts and validation are together.
 
-### 3. Pastas estão simples demais para o tamanho do framework
+### 3. Folders are too simple for the current framework size
 
-Exemplo atual:
+Current example:
 
 ```text
 src/http/
@@ -172,61 +172,62 @@ src/http/
   types.ts
 ```
 
-O problema não é ter muitos arquivos, mas ter muitos arquivos sem agrupamento
-por bounded context/responsabilidade.
+The problem is not having many files, but having many files without
+bounded-context/responsibility grouping.
 
-Proposta: subpastas pequenas e coesas, com barrel `index.ts` em cada boundary.
+Proposal: small cohesive subfolders, with a barrel `index.ts` at each boundary.
 
-### 4. Há nomes e compatibilidade a tratar com cuidado
+### 4. Names and compatibility require care
 
-- `getFormatedName`, `getFormatedLevel`, `getFormatedTime` têm typo em
-  “Formated”.
-- Como já são métodos públicos, corrigir diretamente seria breaking change.
-- Melhor estratégia: adicionar nomes corretos `getFormatted*`, manter aliases
-  antigos marcados como deprecated por uma versão.
+- `getFormatedName`, `getFormatedLevel`, and `getFormatedTime` have a typo in
+  "Formated".
+- Because they are already public methods, directly fixing them would be a
+  breaking change.
+- Better strategy: add the correct `getFormatted*` names and keep the old
+  aliases marked as deprecated for one version.
 
-### 5. ORM atual é bom como primeira fatia, mas não enterprise ainda
+### 5. The current ORM is good as a first slice, but not enterprise yet
 
-Pontos positivos:
+Positive points:
 
-- `KvRepository` depende de `KvStore`, não diretamente de `Deno.Kv`.
-- Isso preserva DIP e facilita testes.
-- Exige `Entity`, alinhado ao DDD pedido.
+- `KvRepository` depends on `KvStore`, not directly on `Deno.Kv`.
+- This preserves DIP and makes testing easier.
+- It requires `Entity`, aligned with the requested DDD direction.
 
-Pontos a evoluir:
+Points to evolve:
 
-- Query atual faz scan por prefixo da collection e filtra em memória.
-- Para enterprise, precisa de índices/materialized access patterns em Deno KV.
-- Query builder e repository devem ser separados antes de adicionar índices,
-  senão o arquivo ficará ainda mais acoplado.
+- The current query scans by collection prefix and filters in memory.
+- For enterprise usage, Deno KV needs indexes/materialized access patterns.
+- Query builder and repository should be separated before adding indexes;
+  otherwise the file will become even more coupled.
 
-### 6. Segurança: pontos para revisar após reorganização
+### 6. Security: points to review after reorganization
 
-- `cors({ origin: "*", credentials: true })` deve ser bloqueado ou normalizado,
-  pois browsers não aceitam wildcard com credentials.
-- `secureHeaders` ainda não cobre alguns headers comuns, como HSTS,
-  Permissions-Policy e X-Permitted-Cross-Domain-Policies.
-- CSP padrão está `false`, aceitável para API, mas deve ser documentado como
-  escolha consciente.
-- Erros inesperados não vazam stack, ponto positivo.
+- `cors({ origin: "*", credentials: true })` should be blocked or normalized,
+  because browsers do not accept wildcard origins with credentials.
+- `secureHeaders` still does not cover some common headers, such as HSTS,
+  Permissions-Policy, and X-Permitted-Cross-Domain-Policies.
+- Default CSP is `false`, acceptable for an API, but it should be documented as
+  an intentional choice.
+- Unexpected errors do not leak stack traces, which is a positive point.
 
-### 7. Coverage ainda não está no padrão final desejado
+### 7. Coverage is still not at the desired final standard
 
-Arquivos com cobertura baixa ou parcial:
+Files with low or partial coverage:
 
-- `core/controller.ts`: linha ~55.9%, função ~50.0%
-- `http/app.ts`: linha ~82.7%, função ~63.2%
-- `http/body.ts`: linha ~76.9%, branch ~62.5%
-- `http/errors.ts`: linha ~55.3%, branch ~50.0%
-- `http/router.ts`: linha ~87.1%, branch ~81.8%
-- `http/security.ts`: linha ~82.6%, branch ~83.7%
+- `core/controller.ts`: line ~55.9%, function ~50.0%
+- `http/app.ts`: line ~82.7%, function ~63.2%
+- `http/body.ts`: line ~76.9%, branch ~62.5%
+- `http/errors.ts`: line ~55.3%, branch ~50.0%
+- `http/router.ts`: line ~87.1%, branch ~81.8%
+- `http/security.ts`: line ~82.6%, branch ~83.7%
 
-Antes de grandes features novas, recomendo resolver organização + cobertura para
-criar uma base limpa.
+Before major new features, I recommend solving organization + coverage to create
+a clean foundation.
 
-## Arquitetura-alvo proposta
+## Proposed target architecture
 
-### Estrutura de alto nível
+### High-level structure
 
 ```text
 src/
@@ -355,34 +356,33 @@ src/
   mod.ts
 ```
 
-### Regras arquiteturais
+### Architectural rules
 
-1. `domain/` não importa `Request`, `Response`, `Deno`, `performance`, `console`
-   ou APIs de runtime.
-2. `application/` orquestra casos de uso e pode depender de contratos de
-   domínio.
-3. `presentation/` lida com HTTP, formato de resposta, router e middleware.
-4. `infrastructure/` contém adaptações externas/runtime-specific.
-5. `mod.ts` e `*/index.ts` são barrels públicos, não devem conter regra de
-   negócio.
-6. Um arquivo deve ter uma classe pública principal no máximo.
-7. Interfaces/tipos podem ficar agrupados somente quando forem contratos
-   pequenos e inseparáveis; caso contrário, separar em `.interface.ts`,
-   `.type.ts` ou `.util.ts`.
-8. Refactor não deve alterar comportamento nem API pública sem teste e
+1. `domain/` does not import `Request`, `Response`, `Deno`, `performance`,
+   `console`, or runtime APIs.
+2. `application/` orchestrates use cases and may depend on domain contracts.
+3. `presentation/` handles HTTP, response format, router, and middleware.
+4. `infrastructure/` contains external/runtime-specific adaptations.
+5. `mod.ts` and `*/index.ts` are public barrels; they should not contain
+   business rules.
+6. A file should have at most one main public class.
+7. Interfaces/types may remain grouped only when they are small and inseparable
+   contracts; otherwise, split them into `.interface.ts`, `.type.ts`, or
+   `.util.ts`.
+8. A refactor must not change behavior or public API without a test and
    deprecation path.
 
-## Plano de execução recomendado
+## Recommended execution plan
 
-### Fase 0 — Congelar baseline e proteger comportamento
+### Phase 0 — Freeze baseline and protect behavior
 
-Objetivo: refatorar sem quebrar.
+Objective: refactor without breaking behavior.
 
-Passos:
+Steps:
 
-1. Criar branch dedicada, por exemplo:
+1. Create a dedicated branch, for example:
    - `refactor/ddd-clean-architecture-organization`
-2. Registrar baseline atual:
+2. Record the current baseline:
    - `deno task fmt`
    - `deno fmt --check`
    - `deno lint`
@@ -392,15 +392,15 @@ Passos:
    - `rm -rf coverage && deno test --coverage=coverage && deno coverage coverage`
    - `deno task bench`
    - `deno run scripts/measure_startup.ts`
-3. Não aceitar queda de performance/cold start acima de ruído normal sem
-   justificar.
-4. Não adicionar features nesta fase; só organização/refactor.
+3. Do not accept a performance/cold start regression above normal noise without
+   justification.
+4. Do not add features in this phase; only organization/refactor.
 
-### Fase 1 — Mover testes para fora de `src`
+### Phase 1 — Move tests out of `src`
 
-Objetivo: separar produção e testes sem mudar comportamento.
+Objective: separate production and tests without changing behavior.
 
-Movimentos sugeridos:
+Suggested moves:
 
 ```text
 src/core/core_test.ts              -> tests/unit/core/core_test.ts
@@ -412,28 +412,28 @@ src/mod_test.ts                    -> tests/unit/public-api/mod_test.ts
 src/orm/kv_repository_test.ts      -> tests/unit/orm/kv/kv_repository_test.ts
 ```
 
-Ajustes:
+Adjustments:
 
-- Corrigir imports relativos.
-- Criar `tests/fixtures/` para classes fake como `User`, `MemoryKv`, controllers
-  de teste etc.
-- Atualizar `deno.json` com tasks:
+- Fix relative imports.
+- Create `tests/fixtures/` for fake classes such as `User`, `MemoryKv`, test
+  controllers, etc.
+- Update `deno.json` with tasks:
   - `test`: `deno test tests`
   - `test:unit`: `deno test tests/unit`
   - `test:integration`: `deno test tests/integration`
   - `coverage`:
     `rm -rf coverage && deno test --coverage=coverage tests && deno coverage coverage`
 
-Validação:
+Validation:
 
-- Rodar somente testes movidos.
-- Depois rodar suite completa.
+- Run only the moved tests.
+- Then run the complete suite.
 
-### Fase 2 — Reorganizar `core`
+### Phase 2 — Reorganize `core`
 
-Objetivo: deixar as bases DDD limpas.
+Objective: keep the DDD bases clean.
 
-Arquivos prováveis:
+Likely files:
 
 ```text
 src/core/domain/entity.ts
@@ -445,70 +445,70 @@ src/core/presentation/route-definition.interface.ts
 src/core/index.ts
 ```
 
-Cuidados:
+Care points:
 
-- Manter exports públicos `Entity`, `Repository`, `Service`, `Controller`,
+- Keep public exports `Entity`, `Repository`, `Service`, `Controller`,
   `RouteDefinition`.
-- Atualizar imports internos sem mudar API pública.
-- Testes de controller/repository devem continuar passando.
+- Update internal imports without changing the public API.
+- Controller/repository tests must keep passing.
 
-### Fase 3 — Reorganizar HTTP
+### Phase 3 — Reorganize HTTP
 
-Objetivo: separar App, router, middleware, responses, body e errors.
+Objective: separate App, router, middleware, responses, body, and errors.
 
-Ordem recomendada:
+Recommended order:
 
-1. Extrair factories/utils de `src/http/app.ts`:
+1. Extract factories/utils from `src/http/app.ts`:
    - `app-context.factory.ts`
    - `error-response.factory.ts`
    - `controller-path.util.ts`
    - `cors-preflight.guard.ts`
-2. Reorganizar errors:
+2. Reorganize errors:
    - `http-error.exception.ts`
    - `http-error-code.util.ts`
-   - factories específicas.
-3. Reorganizar router:
+   - specific factories.
+3. Reorganize router:
    - `router.ts`
-   - interfaces de match/miss.
-   - utils de path/regex.
-4. Reorganizar body/response/middleware em subpastas.
-5. Atualizar `src/http/index.ts` mantendo exports atuais.
+   - match/miss interfaces.
+   - path/regex utils.
+4. Reorganize body/response/middleware into subfolders.
+5. Update `src/http/index.ts` while keeping the current exports.
 
-Cuidados:
+Care points:
 
-- Não quebrar contrato universal de erro.
-- Não alterar status/body dos testes atuais.
-- Preservar preflight CORS antes do router.
-- Garantir que `allow` em 405 continue funcionando.
+- Do not break the universal error contract.
+- Do not change status/body in current tests.
+- Preserve CORS preflight before the router.
+- Ensure `allow` on 405 keeps working.
 
-### Fase 4 — Reorganizar segurança
+### Phase 4 — Reorganize security
 
-Objetivo: separar CORS e secure headers.
+Objective: separate CORS and secure headers.
 
-Estrutura:
+Structure:
 
 ```text
 src/http/security/cors/
 src/http/security/secure-headers/
 ```
 
-Melhorias planejadas, mas como passos separados com TDD:
+Planned improvements, but as separate TDD steps:
 
-1. Teste RED para `cors({ origin: "*", credentials: true })`.
-2. Decidir comportamento:
-   - lançar erro de configuração; ou
-   - refletir origin quando credentials=true.
-3. Adicionar headers opcionais modernos em `secureHeaders`:
+1. RED test for `cors({ origin: "*", credentials: true })`.
+2. Decide behavior:
+   - throw a configuration error; or
+   - reflect origin when credentials=true.
+3. Add modern optional headers in `secureHeaders`:
    - `strict-transport-security`
    - `permissions-policy`
    - `x-permitted-cross-domain-policies`
-4. Documentar defaults.
+4. Document defaults.
 
-### Fase 5 — Reorganizar logger
+### Phase 5 — Reorganize logger
 
-Objetivo: separar logger core de middleware HTTP e formatação visual.
+Objective: separate the core logger from HTTP middleware and visual formatting.
 
-Estrutura:
+Structure:
 
 ```text
 src/logger/domain/
@@ -517,27 +517,28 @@ src/logger/presentation/
 src/logger/infrastructure/http/
 ```
 
-Mudanças recomendadas:
+Recommended changes:
 
-- `Logger` fica em `application/logger.ts`.
-- `requestLogger` fica em `infrastructure/http/request-logger.middleware.ts`.
-- Tipos `LogRecord`, `LogContext`, `LogSink`, `LoggerClock` ficam em `domain/`.
-- Cores e formatters ficam em `presentation/`.
-- Corrigir typo com compatibilidade:
-  - novo: `getFormattedName`, `getFormattedLevel`, `getFormattedTime`
-  - antigo: manter alias `getFormated*` com comentário `@deprecated`.
+- `Logger` stays in `application/logger.ts`.
+- `requestLogger` stays in `infrastructure/http/request-logger.middleware.ts`.
+- `LogRecord`, `LogContext`, `LogSink`, and `LoggerClock` types stay in
+  `domain/`.
+- Colors and formatters stay in `presentation/`.
+- Fix the typo compatibly:
+  - new: `getFormattedName`, `getFormattedLevel`, `getFormattedTime`
+  - old: keep `getFormated*` aliases with a `@deprecated` comment.
 
-Validação:
+Validation:
 
-- Testes atuais do logger.
-- Teste específico garantindo que aliases antigos ainda funcionam.
+- Current logger tests.
+- A specific test guaranteeing the old aliases still work.
 
-### Fase 6 — Reorganizar ORM KV
+### Phase 6 — Reorganize KV ORM
 
-Objetivo: quebrar `src/orm/kv_repository.ts` em responsabilidades pequenas antes
-de adicionar índices.
+Objective: split `src/orm/kv_repository.ts` into small responsibilities before
+adding indexes.
 
-Estrutura:
+Structure:
 
 ```text
 src/orm/kv/domain/
@@ -548,26 +549,25 @@ src/orm/kv/index.ts
 src/orm/index.ts
 ```
 
-Movimentos:
+Moves:
 
-- `KvRepository` isolado.
-- `KvQueryBuilder` isolado.
-- Interfaces/tipos de KV isolados.
-- Operadores e comparadores isolados.
-- Mapper default isolado.
+- Isolated `KvRepository`.
+- Isolated `KvQueryBuilder`.
+- Isolated KV interfaces/types.
+- Isolated operators and comparators.
+- Isolated default mapper.
 
-Cuidados:
+Care points:
 
-- Manter `Box.KvRepository`.
-- Manter `import { KvRepository } from "box/orm"`.
-- Não adicionar índices ainda nesta fase; primeiro refatorar com comportamento
-  idêntico.
+- Keep `Box.KvRepository`.
+- Keep `import { KvRepository } from "box/orm"`.
+- Do not add indexes yet in this phase; first refactor with identical behavior.
 
-### Fase 7 — Revisão de public API e barrels
+### Phase 7 — Public API and barrels review
 
-Objetivo: garantir que o pacote continue fácil de usar.
+Objective: ensure the package remains easy to use.
 
-Arquivos:
+Files:
 
 - `src/mod.ts`
 - `src/core/index.ts`
@@ -576,32 +576,33 @@ Arquivos:
 - `src/orm/index.ts`
 - `deno.json`
 
-Critérios:
+Criteria:
 
-- `Box` continua expondo helpers principais.
-- Subpaths continuam funcionando:
+- `Box` continues exposing the main helpers.
+- Subpaths keep working:
   - `box/core`
   - `box/http`
   - `box/logger`
   - `box/orm`
   - `box/adapters/deno`
-- Barrels não devem importar dependências caras desnecessárias no hot path.
+- Barrels should not import unnecessary expensive dependencies in the hot path.
 
-### Fase 8 — Coverage e quality gates pós-refactor
+### Phase 8 — Coverage and quality gates after refactor
 
-Depois de toda reorganização:
+After all reorganization:
 
-1. Fechar coverage de arquivos que piorarem por causa da movimentação.
-2. Adicionar testes faltantes para:
+1. Close coverage for files that get worse because of the move.
+2. Add missing tests for:
    - `http/errors`
    - `http/body`
    - `http/router`
    - `http/security`
    - `core/controller`
-3. Meta intermediária: 95% global.
-4. Meta final do projeto: 100% unit + integration, conforme objetivo enterprise.
+3. Intermediate target: 95% global.
+4. Final project target: 100% unit + integration, according to the enterprise
+   goal.
 
-Comandos finais:
+Final commands:
 
 ```bash
 deno task fmt
@@ -613,67 +614,66 @@ deno check src/mod.ts src/core/index.ts src/http/index.ts src/logger/index.ts sr
 rm -rf coverage && deno test --coverage=coverage && deno coverage coverage
 deno task bench
 deno run scripts/measure_startup.ts
-deno eval --ext=ts --unstable-kv '<smoke com Deno.openKv(":memory:") + KvRepository>'
+deno eval --ext=ts --unstable-kv '<smoke with Deno.openKv(":memory:") + KvRepository>'
 ```
 
-## Riscos e tradeoffs
+## Risks and tradeoffs
 
-### Risco 1 — Quebrar imports públicos
+### Risk 1 — Breaking public imports
 
-Mitigação:
+Mitigation:
 
-- Refatorar internamente, mas manter barrels e exports públicos.
-- Testes de public API em `tests/unit/public-api/`.
+- Refactor internally, but keep public barrels and exports.
+- Public API tests in `tests/unit/public-api/`.
 
-### Risco 2 — Overengineering por arquivos pequenos demais
+### Risk 2 — Overengineering with files that are too small
 
-Mitigação:
+Mitigation:
 
-- Separar classes públicas e responsabilidades reais.
-- Não separar helpers triviais se só servem a um arquivo e não têm contrato
-  próprio.
-- Usar subpastas por contexto para evitar pasta flat gigante.
+- Separate public classes and real responsibilities.
+- Do not split trivial helpers if they only serve one file and do not have their
+  own contract.
+- Use context-based subfolders to avoid a huge flat folder.
 
-### Risco 3 — Cold start piorar por barrels pesados
+### Risk 3 — Cold start worsening because of heavy barrels
 
-Mitigação:
+Mitigation:
 
-- Medir startup antes/depois.
-- Evitar imports de runtime/adapters no core.
-- Evitar decorators/reflection/auto-scan.
-- Manter registro explícito.
+- Measure startup before/after.
+- Avoid runtime/adapters imports in the core.
+- Avoid decorators/reflection/auto-scan.
+- Keep explicit registration.
 
-### Risco 4 — Refactor mascarar bugs existentes
+### Risk 4 — Refactor masking existing bugs
 
-Mitigação:
+Mitigation:
 
-- Refactor em fatias pequenas.
-- Rodar testes por módulo após cada fase.
-- Não adicionar feature junto com reorganização.
+- Refactor in small slices.
+- Run tests by module after each phase.
+- Do not add a feature together with reorganization.
 
-## Perguntas abertas
+## Open questions
 
-1. A regra desejada é “um arquivo por classe/interface/tipo exportado” de forma
-   absoluta, ou podemos agrupar tipos pequenos em arquivos `.types.ts` quando
-   forem inseparáveis?
-2. Você quer manter compatibilidade total com os nomes públicos atuais,
-   incluindo typos como `getFormated*`, ou podemos fazer breaking changes agora
-   porque o projeto ainda está em fase inicial?
-3. Você prefere estrutura DDD mais explícita
-   (`domain/application/infrastructure/presentation`) em todos os módulos, ou
-   uma versão mais enxuta apenas onde há complexidade real?
+1. Is the desired rule absolutely "one file per exported class/interface/type",
+   or can we group small types in `.types.ts` files when they are inseparable?
+2. Do you want full compatibility with current public names, including typos
+   like `getFormated*`, or can we make breaking changes now because the project
+   is still in its initial phase?
+3. Do you prefer a more explicit DDD structure
+   (`domain/application/infrastructure/presentation`) across all modules, or a
+   leaner version only where real complexity exists?
 
-## Próximo passo recomendado
+## Recommended next step
 
-Implementar primeiro a Fase 1: mover testes para `tests/` e atualizar
-tasks/imports.
+Implement Phase 1 first: move tests to `tests/` and update tasks/imports.
 
-Motivo:
+Reason:
 
-- Ataca diretamente uma reclamação sua.
-- É uma mudança estrutural de baixo risco.
-- Cria base para refatorar os módulos sem misturar produção e teste.
-- Facilita separar unit, integration e performance depois.
+- It directly addresses one of your complaints.
+- It is a low-risk structural change.
+- It creates a foundation for refactoring modules without mixing production and
+  test code.
+- It makes it easier to split unit, integration, and performance later.
 
-Depois disso, seguir para `src/orm/kv_repository.ts`, que é hoje o arquivo com a
-quebra de SRP mais clara.
+After that, move to `src/orm/kv_repository.ts`, which is currently the file with
+the clearest SRP break.

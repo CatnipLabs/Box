@@ -82,7 +82,7 @@ class UsersController extends Controller {
   }
 }
 
-Deno.test("OpenAPI docs: gera documento Scalar/OpenAPI a partir dos schemas Zod das rotas", async () => {
+Deno.test("OpenAPI docs: generates Scalar/OpenAPI document from route Zod schemas", async () => {
   const CreateUserRequest = z.object({
     name: z.string().min(1),
     email: z.string().email(),
@@ -158,7 +158,7 @@ Deno.test("OpenAPI docs: gera documento Scalar/OpenAPI a partir dos schemas Zod 
   assertEquals(document.paths["/internal"], undefined);
 });
 
-Deno.test("OpenAPI docs: cobre defaults, headers, servers, deprecated e content type customizado", async () => {
+Deno.test("OpenAPI docs: covers defaults, headers, servers, deprecated, and custom content type", async () => {
   const app = new App();
   app.docs({
     title: "Admin API",
@@ -225,7 +225,7 @@ Deno.test("OpenAPI docs: cobre defaults, headers, servers, deprecated e content 
   });
 });
 
-Deno.test("OpenAPI docs: expõe página Scalar quando habilitada", async () => {
+Deno.test("OpenAPI docs: exposes the Scalar page when enabled", async () => {
   const app = new App({
     docs: { enabled: true, title: "Billing API" },
   });
@@ -248,7 +248,7 @@ Deno.test("OpenAPI docs: expõe página Scalar quando habilitada", async () => {
   assertStringIncludes(html, "Billing API");
 });
 
-Deno.test("OpenAPI docs: pode ser desligada por ambiente", async () => {
+Deno.test("OpenAPI docs: can be disabled by environment", async () => {
   const app = new App({
     docs: { enabled: false, title: "Private API" },
   });
@@ -266,7 +266,7 @@ Deno.test("OpenAPI docs: pode ser desligada por ambiente", async () => {
   assertEquals(openApiResponse.status, 404);
 });
 
-Deno.test("OpenAPI docs: valida request body com Zod antes do handler e disponibiliza ctx.validated", async () => {
+Deno.test("OpenAPI docs: validates request body with Zod before the handler and exposes ctx.validated", async () => {
   const app = new App();
 
   app.post("/orders", (ctx) => {
@@ -302,7 +302,7 @@ Deno.test("OpenAPI docs: valida request body com Zod antes do handler e disponib
   assertEquals(rejectedBody.error.details[0].path, "quantity");
 });
 
-Deno.test("OpenAPI docs: valida params query headers e JSON malformado", async () => {
+Deno.test("OpenAPI docs: validates params, query, headers, and malformed JSON", async () => {
   const app = new App();
 
   app.post("/tenants/:tenantId/items", (ctx) => {
@@ -356,7 +356,7 @@ Deno.test("OpenAPI docs: valida params query headers e JSON malformado", async (
   assertEquals(malformedJsonBody.error.details[0].path, "");
 });
 
-Deno.test("OpenAPI docs: limita tamanho do body validado por Zod", async () => {
+Deno.test("OpenAPI docs: limits the body size validated by Zod", async () => {
   const app = new App();
 
   app.post("/uploads", () => json({ ok: true }), {

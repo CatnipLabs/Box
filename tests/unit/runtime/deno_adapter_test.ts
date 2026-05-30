@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { serve, serveWithRuntime } from "../../../src/infra/runtime/deno.ts";
 
-Deno.test("Deno adapter: serveWithRuntime delega requests para app.fetch", async () => {
+Deno.test("Deno adapter: serveWithRuntime delegates requests to app.fetch", async () => {
   const calls: string[] = [];
   const app = {
     async fetch(request: Request): Promise<Response> {
@@ -32,6 +32,6 @@ Deno.test("Deno adapter: serveWithRuntime delega requests para app.fetch", async
   assertEquals(calls, ["http://localhost/hello"]);
 });
 
-Deno.test("Deno adapter: serve é exportado como função pública", () => {
+Deno.test("Deno adapter: serve is exported as a public function", () => {
   assertEquals(typeof serve, "function");
 });

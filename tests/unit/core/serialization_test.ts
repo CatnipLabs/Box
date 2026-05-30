@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { safeJsonValue, safeStringify } from "../../../src/core/index.ts";
 
-Deno.test("Serialization: safeJsonValue serializa tipos não JSON e ciclos", () => {
+Deno.test("Serialization: safeJsonValue serializes non-JSON types and cycles", () => {
   const object: Record<string, unknown> = {
     value: 1n,
     fn: () => "ok",
@@ -22,7 +22,7 @@ Deno.test("Serialization: safeJsonValue serializa tipos não JSON e ciclos", () 
   });
 });
 
-Deno.test("Serialization: safeStringify retorna fallback para toJSON quebrado", () => {
+Deno.test("Serialization: safeStringify returns a fallback for broken toJSON", () => {
   const value = {
     toJSON() {
       throw new Error("boom");

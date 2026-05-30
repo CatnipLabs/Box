@@ -13,7 +13,7 @@ async function errorJson(response: Response): Promise<Record<string, unknown>> {
   return await response.json() as Record<string, unknown>;
 }
 
-Deno.test("HTTP hardening: 404/405 e erros de handler passam por middlewares", async () => {
+Deno.test("HTTP hardening: 404/405 and handler errors pass through middlewares", async () => {
   const logs: unknown[] = [];
   const logger = {
     info(_message: unknown, context?: unknown): void {
@@ -73,7 +73,7 @@ Deno.test("HTTP hardening: 404/405 e erros de handler passam por middlewares", a
   assertEquals(logs.length, 3);
 });
 
-Deno.test("HTTP hardening: URL path param com percent encoding inválido retorna 400 universal", async () => {
+Deno.test("HTTP hardening: URL path param with invalid percent encoding returns universal 400", async () => {
   const app = new App();
   app.use(secureHeaders());
   app.get("/users/:id", () => json({ ok: true }));
@@ -89,7 +89,7 @@ Deno.test("HTTP hardening: URL path param com percent encoding inválido retorna
   assertEquals((body.error as Record<string, unknown>).code, "bad_request");
 });
 
-Deno.test("HTTP hardening: readText rejeita Content-Length acima do limite antes de consumir body", async () => {
+Deno.test("HTTP hardening: readText rejects Content-Length above the limit before consuming the body", async () => {
   const stream = new ReadableStream<Uint8Array>({
     pull() {
       throw new Error(
@@ -114,7 +114,7 @@ Deno.test("HTTP hardening: readText rejeita Content-Length acima do limite antes
   );
 });
 
-Deno.test("HTTP hardening: readText interrompe stream quando limite real é ultrapassado", async () => {
+Deno.test("HTTP hardening: readText stops the stream when the actual limit is exceeded", async () => {
   const request = new Request(
     "http://localhost/upload",
     {
@@ -137,7 +137,7 @@ Deno.test("HTTP hardening: readText interrompe stream quando limite real é ultr
   );
 });
 
-Deno.test("HTTP hardening: error details circular e BigInt são serializados com segurança", async () => {
+Deno.test("HTTP hardening: circular error details and BigInt are serialized safely", async () => {
   const circular: Record<string, unknown> = { id: 1n };
   circular.self = circular;
   const app = new App();
@@ -157,7 +157,7 @@ Deno.test("HTTP hardening: error details circular e BigInt são serializados com
   assertEquals(details.self, "[Circular]");
 });
 
-Deno.test("HTTP hardening: logger e requestLogger não quebram response quando sink/context falha", async () => {
+Deno.test("HTTP hardening: logger and requestLogger do not break the response when sink/context fails", async () => {
   const app = new App();
   app.use(requestLogger({
     logger: {
@@ -177,7 +177,7 @@ Deno.test("HTTP hardening: logger e requestLogger não quebram response quando s
   assertEquals(await response.json(), { ok: true });
 });
 
-Deno.test("HTTP hardening: requestLogger redige mensagem de erro inesperado", async () => {
+Deno.test("HTTP hardening: requestLogger redacts unexpected error messages", async () => {
   const errors: Array<Record<string, unknown>> = [];
   const app = new App();
   app.use(requestLogger({
@@ -200,7 +200,7 @@ Deno.test("HTTP hardening: requestLogger redige mensagem de erro inesperado", as
   assertEquals(error.message, "Unexpected error");
 });
 
-Deno.test("HTTP hardening: cors rejeita credentials com wildcard", () => {
+Deno.test("HTTP hardening: cors rejects credentials with wildcard", () => {
   assertThrows(
     () => cors({ origin: "*", credentials: true }),
     TypeError,
@@ -208,7 +208,7 @@ Deno.test("HTTP hardening: cors rejeita credentials com wildcard", () => {
   );
 });
 
-Deno.test("HTTP hardening: secureHeaders suporta HSTS configurável", async () => {
+Deno.test("HTTP hardening: secureHeaders supports configurable HSTS", async () => {
   const app = new App();
   app.use(secureHeaders({
     strictTransportSecurity: "max-age=31536000; includeSubDomains",

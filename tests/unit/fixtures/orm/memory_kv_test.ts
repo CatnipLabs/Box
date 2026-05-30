@@ -1,7 +1,7 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { MemoryKv } from "../../../fixtures/orm/memory_kv.ts";
 
-Deno.test("MemoryKv fixture: suporta chaves bigint", async () => {
+Deno.test("MemoryKv fixture: supports bigint keys", async () => {
   const kv = new MemoryKv();
 
   await kv.set(["users", 1n], { id: 1n, name: "Ada" });
@@ -11,7 +11,7 @@ Deno.test("MemoryKv fixture: suporta chaves bigint", async () => {
   });
 });
 
-Deno.test("MemoryKv fixture: list casa prefixo com Uint8Array por valor", async () => {
+Deno.test("MemoryKv fixture: list matches prefixes with Uint8Array by value", async () => {
   const kv = new MemoryKv();
   const tenantA = new Uint8Array([1, 2, 3]);
   const tenantB = new Uint8Array([9, 9, 9]);
@@ -31,7 +31,7 @@ Deno.test("MemoryKv fixture: list casa prefixo com Uint8Array por valor", async 
   assertEquals(values, ["u1"]);
 });
 
-Deno.test("MemoryKv fixture: clona valores para evitar mutação por referência", async () => {
+Deno.test("MemoryKv fixture: clones values to avoid mutation by reference", async () => {
   const kv = new MemoryKv();
   const value = { id: "u1", roles: ["admin"] };
 
@@ -46,7 +46,7 @@ Deno.test("MemoryKv fixture: clona valores para evitar mutação por referência
   });
 });
 
-Deno.test("MemoryKv fixture: rejeita valor undefined como Deno KV", async () => {
+Deno.test("MemoryKv fixture: rejects undefined values like Deno KV", async () => {
   const kv = new MemoryKv();
 
   await assertRejects(

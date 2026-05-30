@@ -1,12 +1,12 @@
-# ORM com Deno KV
+# ORM with Deno KV
 
-O primeiro adapter ORM do BOX é o `KvRepository`, uma abstração leve sobre Deno
-KV orientada a entidades de domínio.
+Box's first ORM adapter is `KvRepository`, a lightweight abstraction over Deno
+KV oriented around domain entities.
 
-O objetivo é permitir CRUD e consultas fluentes sem que o usuário escreva
-queries manualmente.
+The goal is to provide CRUD and fluent queries without requiring users to write
+manual queries.
 
-## Entidade
+## Entity
 
 ```ts
 class User extends Box.Entity<string> {
@@ -21,7 +21,7 @@ class User extends Box.Entity<string> {
 }
 ```
 
-## Repositório
+## Repository
 
 ```ts
 const kv = await Deno.openKv();
@@ -53,7 +53,7 @@ const adults = await users
   .all();
 ```
 
-## Primeiro resultado
+## First result
 
 ```ts
 const firstAdult = await users
@@ -62,7 +62,7 @@ const firstAdult = await users
   .first();
 ```
 
-## Operadores suportados
+## Supported operators
 
 - `eq`
 - `ne`
@@ -72,7 +72,7 @@ const firstAdult = await users
 - `lte`
 - `contains`
 
-## Ordenação e paginação
+## Sorting and pagination
 
 ```ts
 const page = await users
@@ -83,25 +83,25 @@ const page = await users
   .all();
 ```
 
-## Como funciona atualmente
+## How it currently works
 
-A implementação atual faz scan por prefixo da collection no Deno KV e aplica
-filtros em memória.
+The current implementation scans by collection prefix in Deno KV and applies
+filters in memory.
 
 ```text
 [collection, id] -> entity value
 ```
 
-Isso entrega uma DX simples e tipada agora, sem acoplar o core a decorators ou
-reflection.
+This delivers a simple and typed DX now, without coupling the core to decorators
+or reflection.
 
-Para volumes grandes, a evolução natural é adicionar índices/materialized access
-patterns sobre Deno KV.
+For large volumes, the natural evolution is to add indexes/materialized access
+patterns over Deno KV.
 
-## Mapper customizado
+## Custom mapper
 
-`KvRepository` aceita um mapper customizado quando a entidade precisa de
-hidratação especial.
+`KvRepository` accepts a custom mapper when the entity requires special
+hydration.
 
 ```ts
 const users = new Box.KvRepository(User, kv, {

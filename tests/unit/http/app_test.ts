@@ -40,7 +40,7 @@ function assertErrorBody(
   assert(!Number.isNaN(Date.parse(body.error.timestamp)));
 }
 
-Deno.test("App: responde rota GET com JSON", async () => {
+Deno.test("App: responds to a GET route with JSON", async () => {
   const app = new App();
 
   app.get("/health", () => json({ ok: true }));
@@ -55,7 +55,7 @@ Deno.test("App: responde rota GET com JSON", async () => {
   assertEquals(await bodyJson(response), { ok: true });
 });
 
-Deno.test("App: resolve params e query em rotas REST", async () => {
+Deno.test("App: resolves params and query in REST routes", async () => {
   const app = new App();
 
   app.get("/users/:userId/orders/:orderId", (ctx) => {
@@ -78,7 +78,7 @@ Deno.test("App: resolve params e query em rotas REST", async () => {
   });
 });
 
-Deno.test("App: responde 404 JSON quando rota não existe", async () => {
+Deno.test("App: responds with JSON 404 when the route does not exist", async () => {
   const app = new App();
 
   const response = await app.fetch(new Request("http://localhost/missing"));
@@ -93,7 +93,7 @@ Deno.test("App: responde 404 JSON quando rota não existe", async () => {
   });
 });
 
-Deno.test("App: responde 405 quando path existe para outro método", async () => {
+Deno.test("App: responds with 405 when the path exists for another method", async () => {
   const app = new App();
 
   app.get("/users", () => json({ ok: true }));
@@ -115,7 +115,7 @@ Deno.test("App: responde 405 quando path existe para outro método", async () =>
   });
 });
 
-Deno.test("App: executa middleware em ordem e compartilha state", async () => {
+Deno.test("App: executes middleware in order and shares state", async () => {
   const app = new App();
   const calls: string[] = [];
 
@@ -145,7 +145,7 @@ Deno.test("App: executa middleware em ordem e compartilha state", async () => {
   assertEquals(calls, ["before-1", "before-2", "after-2", "after-1"]);
 });
 
-Deno.test("App: transforma HttpError em resposta JSON segura", async () => {
+Deno.test("App: transforms HttpError into a safe JSON response", async () => {
   const app = new App();
 
   app.get("/bad", () => {
@@ -172,7 +172,7 @@ Deno.test("App: transforma HttpError em resposta JSON segura", async () => {
   });
 });
 
-Deno.test("App: transforma erro inesperado em 500 sem vazar stack", async () => {
+Deno.test("App: transforms unexpected errors into 500 without leaking stack", async () => {
   const app = new App();
 
   app.get("/boom", () => {
@@ -191,7 +191,7 @@ Deno.test("App: transforma erro inesperado em 500 sem vazar stack", async () => 
   });
 });
 
-Deno.test("App: suporta custom exceptions estendendo HttpError", async () => {
+Deno.test("App: supports custom exceptions extending HttpError", async () => {
   class CreditLimitExceeded extends HttpError {
     public constructor() {
       super(409, "Credit limit exceeded", "credit_limit_exceeded", {
@@ -220,7 +220,7 @@ Deno.test("App: suporta custom exceptions estendendo HttpError", async () => {
   });
 });
 
-Deno.test("Body: readJson lê payload JSON com limite explícito", async () => {
+Deno.test("Body: readJson reads a JSON payload with an explicit limit", async () => {
   const request = new Request("http://localhost/users", {
     method: "POST",
     body: JSON.stringify({ name: "Ada" }),
@@ -231,7 +231,7 @@ Deno.test("Body: readJson lê payload JSON com limite explícito", async () => {
   assertEquals(result, { name: "Ada" });
 });
 
-Deno.test("Body: readText rejeita payload acima do limite", async () => {
+Deno.test("Body: readText rejects payloads above the limit", async () => {
   const request = new Request("http://localhost/users", {
     method: "POST",
     body: "123456",

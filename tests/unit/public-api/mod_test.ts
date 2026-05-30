@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { Box } from "../../../src/mod.ts";
 
-Deno.test("Public API: Box expõe App e helper json para hello-world", async () => {
+Deno.test("Public API: Box exposes App and json helper for hello-world", async () => {
   const app = new Box.App();
 
   app.get("/health", () => Box.json({ ok: true }));
@@ -12,7 +12,7 @@ Deno.test("Public API: Box expõe App e helper json para hello-world", async () 
   assertEquals(await response.json(), { ok: true });
 });
 
-Deno.test("Public API: Box mantém logger legado em subobjeto Log", () => {
+Deno.test("Public API: Box keeps legacy logger under Log subobject", () => {
   const logger = new Box.Log.Logger({
     name: "api",
     level: Box.Log.Levels.INFO,
@@ -21,7 +21,7 @@ Deno.test("Public API: Box mantém logger legado em subobjeto Log", () => {
   assertEquals(logger.getServiceName(), "api");
 });
 
-Deno.test("Public API: Box expõe bases DDD", () => {
+Deno.test("Public API: Box exposes DDD bases", () => {
   class User extends Box.Entity<string> {}
   class UsersRepository extends Box.Repository<User> {
     constructor() {

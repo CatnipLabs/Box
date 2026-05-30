@@ -17,7 +17,7 @@ function makeLogger(name?: string) {
 }
 
 Deno.test(
-  "Logger - constructor: instancia com opções válidas (com name)",
+  "Logger - constructor: instantiates with valid options (with name)",
   () => {
     const logger = new Logger({ name: "MyService", level: Levels.DEBUG });
     assertEquals(logger.getServiceName(), "MyService");
@@ -25,7 +25,7 @@ Deno.test(
 );
 
 Deno.test(
-  "Logger - constructor: instancia com opções válidas (sem name)",
+  "Logger - constructor: instantiates with valid options (without name)",
   () => {
     const logger = new Logger({ level: Levels.INFO });
     assertEquals(typeof logger.getServiceName(), "string");
@@ -33,7 +33,7 @@ Deno.test(
 );
 
 Deno.test(
-  "Logger - constructor: lança erro quando argumento é null/undefined",
+  "Logger - constructor: throws when argument is null/undefined",
   () => {
     assertThrows(
       () => new Logger(null as unknown as LoggerConstructorOptions),
@@ -67,24 +67,24 @@ Deno.test("getForegroundColor: TRACE → GRAY", () => {
   assertEquals(logger.getForegroundColor(Levels.TRACE), ForegroundColors.GRAY);
 });
 
-Deno.test("getForegroundColor: valor desconhecido → WHITE (default)", () => {
+Deno.test("getForegroundColor: unknown value → WHITE (default)", () => {
   const logger = makeLogger();
   const color = logger.getForegroundColor("UNKNOWN_LEVEL" as unknown as Levels);
   assertEquals(color, ForegroundColors.WHITE);
 });
 
-Deno.test("getFormatedName: sem name retorna string vazia", () => {
+Deno.test("getFormatedName: without name returns an empty string", () => {
   const logger = makeLogger();
   assertEquals(logger.getFormatedName(), "");
 });
 
-Deno.test("getFormatedName: com name contém o nome na string", () => {
+Deno.test("getFormatedName: with name contains the name in the string", () => {
   const logger = makeLogger("API");
   const result: string = logger.getFormatedName();
   assertEquals(result.includes("API"), true);
 });
 
-Deno.test("getFormatedName: com name inclui colchetes e cores de reset", () => {
+Deno.test("getFormatedName: with name includes brackets and reset colors", () => {
   const logger = makeLogger("SVC");
   const result: string = logger.getFormatedName();
   assertEquals(result.includes("["), true);
@@ -93,32 +93,32 @@ Deno.test("getFormatedName: com name inclui colchetes e cores de reset", () => {
   assertEquals(result.includes(ForegroundColors.BLUE), true);
 });
 
-Deno.test("getFormatedLevel: contém o label do nível", () => {
+Deno.test("getFormatedLevel: contains the level label", () => {
   const logger = makeLogger();
   const result: string = logger.getFormatedLevel(Levels.INFO);
   assertEquals(result.includes(String(Levels.INFO)), true);
 });
 
-Deno.test("getFormatedLevel: contém a cor correta para ERROR", () => {
+Deno.test("getFormatedLevel: contains the correct color for ERROR", () => {
   const logger = makeLogger();
   const result: string = logger.getFormatedLevel(Levels.ERROR);
   assertEquals(result.includes(ForegroundColors.RED), true);
 });
 
-Deno.test("getFormatedLevel: contém colchetes e reset", () => {
+Deno.test("getFormatedLevel: contains brackets and reset", () => {
   const logger = makeLogger();
   const result: string = logger.getFormatedLevel(Levels.DEBUG);
   assertEquals(result.includes("["), true);
   assertEquals(result.includes(BackgroundColors.RESET), true);
 });
 
-Deno.test("getFormatedTime: retorna string com timestamp ISO-8601", () => {
+Deno.test("getFormatedTime: returns string with ISO-8601 timestamp", () => {
   const logger = makeLogger();
   const result: string = logger.getFormatedTime();
   assertMatch(result, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 });
 
-Deno.test("getFormatedTime: contém GRAY e colchetes", () => {
+Deno.test("getFormatedTime: contains GRAY and brackets", () => {
   const logger = makeLogger();
   const result: string = logger.getFormatedTime();
   assertEquals(result.includes(ForegroundColors.GRAY), true);
@@ -126,7 +126,7 @@ Deno.test("getFormatedTime: contém GRAY e colchetes", () => {
   assertEquals(result.includes("]"), true);
 });
 
-Deno.test("format: inclui nível, timestamp e mensagem", () => {
+Deno.test("format: includes level, timestamp, and message", () => {
   const logger = makeLogger("FMT");
   const result: string = logger.format(Levels.INFO, "hello");
   assertEquals(result.includes(String(Levels.INFO)), true);
@@ -135,7 +135,7 @@ Deno.test("format: inclui nível, timestamp e mensagem", () => {
 });
 
 Deno.test(
-  "format: quando sem name o resultado não possui string vazia duplicada estranha",
+  "format: without name the result does not have a weird duplicated empty string",
   () => {
     const logger = makeLogger();
     const result: string = logger.format(Levels.WARN, "msg");
@@ -144,14 +144,14 @@ Deno.test(
   },
 );
 
-Deno.test("format: message pode ser objeto", () => {
+Deno.test("format: message can be an object", () => {
   const logger = makeLogger();
   const obj = { key: "value" };
   const result: string = logger.format(Levels.DEBUG, obj);
   assertEquals(result.includes("[object Object]"), true);
 });
 
-Deno.test("info: chama console.log com mensagem formatada", () => {
+Deno.test("info: calls console.log with formatted message", () => {
   const logger = makeLogger("TEST");
   using logStub = stub(console, "log");
 
@@ -163,7 +163,7 @@ Deno.test("info: chama console.log com mensagem formatada", () => {
   assertEquals(arg.includes(String(Levels.INFO)), true);
 });
 
-Deno.test("warn: chama console.warn com mensagem formatada", () => {
+Deno.test("warn: calls console.warn with formatted message", () => {
   const logger = makeLogger("TEST");
   using warnStub = stub(console, "warn");
 
@@ -175,7 +175,7 @@ Deno.test("warn: chama console.warn com mensagem formatada", () => {
   assertEquals(arg.includes(String(Levels.WARN)), true);
 });
 
-Deno.test("error: chama console.error com mensagem formatada", () => {
+Deno.test("error: calls console.error with formatted message", () => {
   const logger = makeLogger("TEST");
   using errorStub = stub(console, "error");
 
@@ -187,7 +187,7 @@ Deno.test("error: chama console.error com mensagem formatada", () => {
   assertEquals(arg.includes(String(Levels.ERROR)), true);
 });
 
-Deno.test("debug: chama console.debug com mensagem formatada", () => {
+Deno.test("debug: calls console.debug with formatted message", () => {
   const logger = makeLogger("TEST");
   using debugStub = stub(console, "debug");
 
@@ -199,7 +199,7 @@ Deno.test("debug: chama console.debug com mensagem formatada", () => {
   assertEquals(arg.includes(String(Levels.DEBUG)), true);
 });
 
-Deno.test("trace: chama console.log com mensagem formatada", () => {
+Deno.test("trace: calls console.log with formatted message", () => {
   const logger = makeLogger("TEST");
   using logStub = stub(console, "log");
 
@@ -211,28 +211,28 @@ Deno.test("trace: chama console.log com mensagem formatada", () => {
   assertEquals(arg.includes(String(Levels.TRACE)), true);
 });
 
-Deno.test("info: aceita número como mensagem", () => {
+Deno.test("info: accepts number as message", () => {
   const logger = makeLogger();
   using logStub = stub(console, "log");
   logger.info(42);
   assertSpyCalls(logStub, 1);
 });
 
-Deno.test("error: aceita Error como mensagem", () => {
+Deno.test("error: accepts Error as message", () => {
   const logger = makeLogger();
   using errStub = stub(console, "error");
   logger.error(new Error("boom"));
   assertSpyCalls(errStub, 1);
 });
 
-Deno.test("warn: aceita null como mensagem", () => {
+Deno.test("warn: accepts null as message", () => {
   const logger = makeLogger();
   using warnStub = stub(console, "warn");
   logger.warn(null);
   assertSpyCalls(warnStub, 1);
 });
 
-Deno.test("info com name: saída contém o nome do serviço", () => {
+Deno.test("info with name: output contains the service name", () => {
   const logger = makeLogger("OrderService");
   using logStub = stub(console, "log");
 
@@ -242,8 +242,8 @@ Deno.test("info com name: saída contém o nome do serviço", () => {
   assertEquals(arg.includes("OrderService"), true);
 });
 
-Deno.test("debug sem name: saída não contém colchete de nome vazio", () => {
-  const logger = makeLogger(); // sem name
+Deno.test("debug without name: output does not contain empty-name brackets", () => {
+  const logger = makeLogger(); // without name
   using debugStub = stub(console, "debug");
 
   logger.debug("checking");
@@ -252,7 +252,7 @@ Deno.test("debug sem name: saída não contém colchete de nome vazio", () => {
   assertEquals(arg.length > 0, true);
 });
 
-Deno.test("Logger - constructor: lança erro para opções inválidas", () => {
+Deno.test("Logger - constructor: throws for invalid options", () => {
   assertThrows(
     () => new Logger({ name: 123 as unknown as string }),
     Error,
@@ -283,7 +283,7 @@ Deno.test("Logger - constructor: lança erro para opções inválidas", () => {
   );
 });
 
-Deno.test("Logger - level: padrão INFO ignora DEBUG", () => {
+Deno.test("Logger - level: default INFO ignores DEBUG", () => {
   const logger = new Logger({});
   using debugStub = stub(console, "debug");
 
@@ -292,7 +292,7 @@ Deno.test("Logger - level: padrão INFO ignora DEBUG", () => {
   assertSpyCalls(debugStub, 0);
 });
 
-Deno.test("requestLogger: usa logger padrão quando nenhum logger é informado", async () => {
+Deno.test("requestLogger: uses default logger when none is provided", async () => {
   const app = new App();
   const times = [1, 2];
   using logStub = stub(console, "log");
@@ -309,7 +309,7 @@ Deno.test("requestLogger: usa logger padrão quando nenhum logger é informado",
   assertEquals(arg.includes("HTTP request completed"), true);
 });
 
-Deno.test("requestLogger: registra erro estruturado e relança a exceção", async () => {
+Deno.test("requestLogger: records structured error and rethrows the exception", async () => {
   const records: LogRecord[] = [];
   const logger = new Logger({
     name: "HttpServer",
@@ -322,7 +322,7 @@ Deno.test("requestLogger: registra erro estruturado e relança a exceção", asy
 
   app.use(requestLogger({ logger, now: () => times.shift() ?? 8 }));
   app.get("/boom", () => {
-    throw "falha bruta";
+    throw "raw failure";
   });
 
   const response = await app.fetch(
@@ -341,11 +341,11 @@ Deno.test("requestLogger: registra erro estruturado e relança a exceção", asy
     status: 500,
     durationMs: 3,
     requestId: "corr-1",
-    error: { message: "falha bruta" },
+    error: { message: "raw failure" },
   });
 });
 
-Deno.test("Logger - structured: sink recebe record com contexto tipado", () => {
+Deno.test("Logger - structured: sink receives record with typed context", () => {
   const records: LogRecord[] = [];
   const logger = new Logger({
     name: "OrdersService",
@@ -365,7 +365,7 @@ Deno.test("Logger - structured: sink recebe record com contexto tipado", () => {
   assertEquals(records[0].context, { orderId: "ord-1", total: 99 });
 });
 
-Deno.test("requestLogger: registra access log estruturado com requestId e duração", async () => {
+Deno.test("requestLogger: records structured access log with requestId and duration", async () => {
   const records: LogRecord[] = [];
   const logger = new Logger({
     name: "HttpServer",

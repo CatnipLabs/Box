@@ -1,50 +1,51 @@
-# Base do Framework REST Serverless/Edge Implementation Plan
+# REST Serverless/Edge Framework Base Implementation Plan
 
-> **Para Hermes:** este plano está em modo planejamento. Não implementar nada
-> até aprovação explícita.
+> **For Hermes:** this plan is in planning mode. Do not implement anything until
+> explicit approval.
 
-**Goal:** estabelecer uma base simples para o Box virar um framework de APIs
-REST focado em DX simples, Web Standards, Serverless/Edge e cold start mínimo.
+**Goal:** establish a simple foundation for Box to become a REST API framework
+focused on simple DX, Web Standards, Serverless/Edge, and minimal cold start.
 
-**Architecture:** o core deve ser pequeno e sem dependências pesadas no caminho
-quente: `Request` entra, `Response` sai. A base deve funcionar em qualquer
-runtime compatível com Fetch API/Deno Deploy/Cloudflare Workers/Bun/Node
-adapters, evitando decorators, reflection, DI container e inicialização global
-custosa. Recursos como logger e validação devem ser opcionais/modulares para não
-penalizar cold start de uma API mínima.
+**Architecture:** the core should be small and free of heavy dependencies in the
+hot path: `Request` in, `Response` out. The base should work in any runtime
+compatible with the Fetch API/Deno Deploy/Cloudflare Workers/Bun/Node adapters,
+avoiding decorators, reflection, DI containers, and costly global
+initialization. Features such as logging and validation should be
+optional/modular so they do not penalize the cold start of a minimal API.
 
-**Tech Stack:** Deno + TypeScript, Web Fetch API, testes com `deno test`,
-benchmarks simples com `Deno.bench`.
+**Tech Stack:** Deno + TypeScript, Web Fetch API, tests with `deno test`, simple
+benchmarks with `Deno.bench`.
 
 ---
 
-## Contexto atual
+## Current context
 
-- Projeto atual: `/home/ander/projects/Box`.
-- `deno.json` exporta `./src/mod.ts`.
-- Hoje o projeto contém basicamente um módulo de logger em `src/logger/*` e
-  exporta `Box.Log` em `src/mod.ts`.
-- Existe dependência de `zod`; para cold start, o core HTTP não deve depender
-  dela diretamente. Se validação for mantida, deve ficar em módulo opcional.
+- Current project: `/home/ander/projects/Box`.
+- `deno.json` exports `./src/mod.ts`.
+- Today the project basically contains a logger module in `src/logger/*` and
+  exports `Box.Log` in `src/mod.ts`.
+- There is a dependency on `zod`; for cold start, the HTTP core should not
+  depend on it directly. If validation is kept, it should stay in an optional
+  module.
 
-## Princípios da base
+## Foundation principles
 
-1. Simplicidade acima de abstração: `app.get('/users/:id', handler)` deve ser
-   suficiente.
-2. Web Standards primeiro: handlers recebem/retornam tipos compatíveis com
-   `Request`, `Response`, `URL`, `Headers`.
-3. Cold start mínimo: sem decorators, sem metadata reflection, sem class
-   scanning, sem container global, sem importar logger/validação no core.
-4. Edge/serverless friendly: nenhum uso obrigatório de Node APIs, filesystem ou
-   processo global no core.
-5. O framework deve ser fácil de testar: criar request fake, chamar
-   `app.fetch(request)`, validar `Response`.
-6. Erros devem ter default seguro: resposta JSON previsível, sem vazar stack
-   trace por padrão.
+1. Simplicity over abstraction: `app.get('/users/:id', handler)` should be
+   enough.
+2. Web Standards first: handlers receive/return types compatible with `Request`,
+   `Response`, `URL`, `Headers`.
+3. Minimal cold start: no decorators, no metadata reflection, no class scanning,
+   no global container, no importing logger/validation in the core.
+4. Edge/serverless friendly: no mandatory use of Node APIs, filesystem, or
+   global process in the core.
+5. The framework should be easy to test: create a fake request, call
+   `app.fetch(request)`, validate `Response`.
+6. Errors should have a safe default: predictable JSON response, without leaking
+   stack trace by default.
 
-## API inicial proposta
+## Proposed initial API
 
-Exemplo de DX alvo:
+Target DX example:
 
 ```ts
 import { Box } from "box";
@@ -60,7 +61,7 @@ app.get("/users/:id", (ctx) => {
 export default app;
 ```
 
-Para runtimes Fetch-first:
+For Fetch-first runtimes:
 
 ```ts
 export default {
@@ -68,83 +69,85 @@ export default {
 };
 ```
 
-## Plano passo a passo
+## Step-by-step plan
 
-### 1. Reorganizar exports públicos sem quebrar o logger
+### 1. Reorganize public exports without breaking the logger
 
-**Objetivo:** deixar o core HTTP como caminho principal sem importar logger
-automaticamente.
+**Objective:** make the HTTP core the main path without importing the logger
+automatically.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Modificar: `src/mod.ts`
-- Criar: `src/http/index.ts`
-- Criar: `src/http/app.ts`
-- Criar: `src/http/types.ts`
+- Modify: `src/mod.ts`
+- Create: `src/http/index.ts`
+- Create: `src/http/app.ts`
+- Create: `src/http/types.ts`
 
-**Ações:**
+**Actions:**
 
-- Exportar `App`, helpers HTTP e tipos a partir de `src/http/index.ts`.
-- Manter logger exportável, mas modular, por exemplo
-  `export * as Log from "./logger/index.ts"` ou `export { Logger } ...` sem
-  acoplar o core.
-- Evitar que `new Box.App()` carregue `zod` ou logger.
+- Export `App`, HTTP helpers, and types from `src/http/index.ts`.
+- Keep the logger exportable, but modular, for example
+  `export * as Log from "./logger/index.ts"` or `export { Logger } ...` without
+  coupling the core.
+- Avoid having `new Box.App()` load `zod` or the logger.
 
-### 2. Criar o contrato mínimo de handler/context
+### 2. Create the minimal handler/context contract
 
-**Objetivo:** definir o menor conjunto útil para escrever endpoints REST.
+**Objective:** define the smallest useful set for writing REST endpoints.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/types.ts`
-- Testar: `src/http/types_test.ts` ou cobrir via testes de `app`.
+- Create: `src/http/types.ts`
+- Test: `src/http/types_test.ts` or cover through `app` tests.
 
-**Contrato sugerido:**
+**Suggested contract:**
 
 - `Handler = (ctx: Context) => Response | Promise<Response>`
-- `Context` com:
+- `Context` with:
   - `request: Request`
   - `url: URL`
   - `params: Record<string, string>`
   - `query: URLSearchParams`
-  - `state: Record<string, unknown>` para middlewares simples
+  - `state: Record<string, unknown>` for simple middlewares
 - `Middleware = (ctx, next) => Response | Promise<Response>`
 
-**Observação:** manter `Context` como objeto simples, não classe pesada, para
-reduzir custo de instanciação.
+**Note:** keep `Context` as a simple object, not a heavy class, to reduce
+instantiation cost.
 
-### 3. Implementar roteador simples por método + path
+### 3. Implement a simple router by method + path
 
-**Objetivo:** suportar rotas estáticas e parâmetros sem dependências externas.
+**Objective:** support static routes and parameters without external
+dependencies.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/router.ts`
-- Criar: `src/http/router_test.ts`
+- Create: `src/http/router.ts`
+- Create: `src/http/router_test.ts`
 
-**Escopo inicial:**
+**Initial scope:**
 
-- Métodos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`.
-- Paths estáticos: `/health`.
-- Params simples: `/users/:id`, `/orders/:orderId/items/:itemId`.
-- 404 JSON padrão quando não houver match.
-- 405 opcional se path existir mas método não bater; pode ficar para uma segunda
-  etapa se complicar.
+- Methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`.
+- Static paths: `/health`.
+- Simple params: `/users/:id`, `/orders/:orderId/items/:itemId`.
+- Default JSON 404 when there is no match.
+- Optional 405 if the path exists but the method does not match; this can be
+  left for a second stage if it becomes complicated.
 
-**Decisão de simplicidade:** começar com compilação de path para regex no
-momento do registro da rota. Isso paga custo no boot, mas é pequeno e deixa o
-dispatch simples. Depois medir se vale trocar por trie.
+**Simplicity decision:** start with path compilation to regex at route
+registration time. This pays a cost at boot, but it is small and keeps the
+dispatch simple. Later measure whether it is worth switching to a trie.
 
-### 4. Criar `App` com API fluente e `fetch()`
+### 4. Create `App` with fluent API and `fetch()`
 
-**Objetivo:** o usuário deve conseguir criar uma API mínima em poucos comandos.
+**Objective:** the user should be able to create a minimal API in a few
+commands.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/app.ts`
-- Criar: `src/http/app_test.ts`
+- Create: `src/http/app.ts`
+- Create: `src/http/app_test.ts`
 
-**Métodos iniciais:**
+**Initial methods:**
 
 - `app.get(path, handler)`
 - `app.post(path, handler)`
@@ -154,131 +157,131 @@ dispatch simples. Depois medir se vale trocar por trie.
 - `app.use(middleware)`
 - `app.fetch(request)`
 
-**Comportamento:**
+**Behavior:**
 
-- `app.fetch(request)` deve montar `Context`, executar middlewares e handler, e
-  sempre retornar `Response`.
-- Se handler lançar erro, delegar para error handler padrão.
+- `app.fetch(request)` should build `Context`, run middlewares and the handler,
+  and always return `Response`.
+- If the handler throws an error, delegate to the default error handler.
 
-### 5. Adicionar helpers pequenos de resposta
+### 5. Add small response helpers
 
-**Objetivo:** reduzir boilerplate sem esconder Web Standards.
+**Objective:** reduce boilerplate without hiding Web Standards.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/response.ts`
-- Criar: `src/http/response_test.ts`
+- Create: `src/http/response.ts`
+- Create: `src/http/response_test.ts`
 
-**Helpers iniciais:**
+**Initial helpers:**
 
 - `json(data, init?)`
 - `text(body, init?)`
 - `empty(status?)`
 - `redirect(url, status?)`
 
-**Regra de cold start:** helpers devem usar APIs nativas (`Response`,
-`JSON.stringify`) e não depender de serializers externos.
+**Cold start rule:** helpers should use native APIs (`Response`,
+`JSON.stringify`) and not depend on external serializers.
 
-### 6. Definir erro HTTP simples
+### 6. Define a simple HTTP error
 
-**Objetivo:** padronizar falhas sem framework pesado.
+**Objective:** standardize failures without a heavy framework.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/errors.ts`
-- Criar: `src/http/errors_test.ts`
+- Create: `src/http/errors.ts`
+- Create: `src/http/errors_test.ts`
 
-**Escopo inicial:**
+**Initial scope:**
 
-- `HttpError` com `status`, `message`, `code?`, `details?`.
-- `notFound()` e `badRequest()` como helpers opcionais.
-- Error handler padrão retorna JSON:
+- `HttpError` with `status`, `message`, `code?`, `details?`.
+- `notFound()` and `badRequest()` as optional helpers.
+- Default error handler returns JSON:
   - `status`
   - `error`
   - `message`
-- Stack trace não deve ir para resposta por padrão.
+- Stack trace should not go into the response by default.
 
-### 7. Adicionar leitura de body com limite explícito
+### 7. Add body reading with an explicit limit
 
-**Objetivo:** facilitar APIs REST sem abrir risco de payload gigante.
+**Objective:** make REST APIs easier without opening the risk of a huge payload.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/body.ts`
-- Criar: `src/http/body_test.ts`
+- Create: `src/http/body.ts`
+- Create: `src/http/body_test.ts`
 
 **Helpers:**
 
-- `ctx.json<T>()` ou `readJson<T>(request, options)`.
-- `ctx.text()` ou `readText(...)`.
-- Definir limite padrão simples, por exemplo `1mb`, e permitir override.
+- `ctx.json<T>()` or `readJson<T>(request, options)`.
+- `ctx.text()` or `readText(...)`.
+- Define a simple default limit, for example `1mb`, and allow override.
 
-**Tradeoff:** se adicionar métodos ao `Context`, ainda manter o objeto leve. Uma
-alternativa mais simples é exportar funções `readJson(ctx)`.
+**Tradeoff:** if adding methods to `Context`, still keep the object lightweight.
+A simpler alternative is to export `readJson(ctx)` functions.
 
-### 8. Middlewares mínimos, sem ecossistema prematuro
+### 8. Minimal middlewares, without a premature ecosystem
 
-**Objetivo:** permitir cross-cutting concerns sem criar complexidade agora.
+**Objective:** allow cross-cutting concerns without creating complexity now.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/http/middleware.ts`
-- Criar: `src/http/middleware_test.ts`
+- Create: `src/http/middleware.ts`
+- Create: `src/http/middleware_test.ts`
 
-**Escopo inicial:**
+**Initial scope:**
 
 - Pipeline `app.use(async (ctx, next) => { ... })`.
-- Um helper opcional de `cors()` pode ser criado só se necessário para validação
-  manual.
-- Não criar autenticação, DI, OpenAPI, ORM, plugins ou decorators nesta fase.
+- An optional `cors()` helper can be created only if needed for manual
+  validation.
+- Do not create authentication, DI, OpenAPI, ORM, plugins, or decorators in this
+  phase.
 
-### 9. Adapters de runtime: começar Fetch-first
+### 9. Runtime adapters: start Fetch-first
 
-**Objetivo:** manter o core portável e adicionar adapters só onde agregam.
+**Objective:** keep the core portable and add adapters only where they add
+value.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `src/adapters/deno.ts`
-- Opcional futuro: `src/adapters/node.ts`, `src/adapters/cloudflare.ts`
+- Create: `src/adapters/deno.ts`
+- Future optional: `src/adapters/node.ts`, `src/adapters/cloudflare.ts`
 
-**Primeira etapa:**
+**First stage:**
 
-- `app.fetch(request)` já cobre Deno Deploy, Cloudflare Workers e vários
-  runtimes Edge.
-- Adapter Deno pode ser apenas um helper `serve(app, options?)` usando
-  `Deno.serve`.
+- `app.fetch(request)` already covers Deno Deploy, Cloudflare Workers, and
+  several Edge runtimes.
+- Deno adapter can be just a `serve(app, options?)` helper using `Deno.serve`.
 
-**Não fazer agora:** criar adapter Node completo antes de validar necessidade
-real.
+**Do not do now:** create a complete Node adapter before validating real need.
 
-### 10. Criar exemplo mínimo e documentação inicial
+### 10. Create a minimal example and initial documentation
 
-**Objetivo:** deixar claro que o framework é simples.
+**Objective:** make it clear that the framework is simple.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `examples/hello-world/main.ts`
-- Criar: `examples/rest-api/main.ts`
-- Modificar: `README.md`
+- Create: `examples/hello-world/main.ts`
+- Create: `examples/rest-api/main.ts`
+- Modify: `README.md`
 
-**README deve conter:**
+**README should contain:**
 
-- Instalação/uso básico.
-- Exemplo `GET /health`.
-- Exemplo de params e query.
-- Exemplo de middleware simples.
-- Nota explícita: core baseado em Fetch API e pensado para Serverless/Edge.
+- Installation/basic usage.
+- `GET /health` example.
+- Params and query example.
+- Simple middleware example.
+- Explicit note: core based on Fetch API and designed for Serverless/Edge.
 
-### 11. Adicionar testes e checks como contrato de base
+### 11. Add tests and checks as the foundation contract
 
-**Objetivo:** travar comportamento antes de expandir features.
+**Objective:** lock behavior before expanding features.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Modificar: `deno.json`
-- Criar testes ao lado dos módulos: `src/http/*_test.ts`
+- Modify: `deno.json`
+- Create tests next to the modules: `src/http/*_test.ts`
 
-**Tasks sugeridas em `deno.json`:**
+**Suggested tasks in `deno.json`:**
 
 - `test`: `deno test --allow-none`
 - `check`: `deno check src/mod.ts`
@@ -286,39 +289,39 @@ real.
 - `lint`: `deno lint`
 - `bench`: `deno bench`
 
-**Validação esperada:**
+**Expected validation:**
 
 - `deno fmt --check`
 - `deno lint`
 - `deno check src/mod.ts`
 - `deno test --allow-none`
 
-### 12. Medir cold start e overhead mínimo
+### 12. Measure cold start and minimal overhead
 
-**Objetivo:** tomar decisões com métrica, não feeling.
+**Objective:** make decisions with metrics, not gut feeling.
 
-**Arquivos prováveis:**
+**Likely files:**
 
-- Criar: `bench/router_bench.ts`
-- Criar: `bench/cold_start_bench.ts` ou script simples em
+- Create: `bench/router_bench.ts`
+- Create: `bench/cold_start_bench.ts` or a simple script in
   `scripts/measure_startup.ts`
 
-**Métricas iniciais:**
+**Initial metrics:**
 
-- Tempo para importar `src/mod.ts`.
-- Tempo para criar `new App()` com 1 rota.
-- Latência média de `app.fetch(new Request(...))` para rota estática.
-- Latência média para rota com params.
-- Tamanho/quantidade de módulos carregados, se viável medir no Deno.
+- Time to import `src/mod.ts`.
+- Time to create `new App()` with 1 route.
+- Average latency of `app.fetch(new Request(...))` for a static route.
+- Average latency for a route with params.
+- Size/number of loaded modules, if feasible to measure in Deno.
 
-**Meta inicial sugerida:**
+**Suggested initial target:**
 
-- API hello-world deve iniciar sem carregar logger/zod.
-- Dispatch de rota simples deve ficar em micro/milisegundos baixos em benchmark
-  local.
-- Nenhum acesso a filesystem/rede/env durante import do core.
+- Hello-world API should start without loading logger/zod.
+- Simple route dispatch should stay in low microseconds/milliseconds in local
+  benchmark.
+- No filesystem/network/env access during core import.
 
-## Arquivos provavelmente alterados/criados
+## Files likely changed/created
 
 - `deno.json`
 - `README.md`
@@ -336,22 +339,22 @@ real.
 - `examples/hello-world/main.ts`
 - `examples/rest-api/main.ts`
 - `bench/router_bench.ts`
-- `bench/cold_start_bench.ts` ou `scripts/measure_startup.ts`
+- `bench/cold_start_bench.ts` or `scripts/measure_startup.ts`
 
-## O que evitar na primeira base
+## What to avoid in the first base
 
-- Decorators e reflection.
-- Auto-discovery de controllers por filesystem.
+- Decorators and reflection.
+- Auto-discovery of controllers by filesystem.
 - DI container.
-- OpenAPI automático.
-- Validação obrigatória com Zod no core.
+- Automatic OpenAPI.
+- Mandatory validation with Zod in the core.
 - ORM/database abstractions.
-- Plugins antes do contrato do core estabilizar.
-- Adapter Node completo antes de confirmar necessidade.
+- Plugins before the core contract stabilizes.
+- Complete Node adapter before confirming need.
 
-## Testes / validação
+## Tests / validation
 
-Executar após implementação:
+Run after implementation:
 
 ```bash
 deno fmt --check
@@ -361,7 +364,7 @@ deno test --allow-none
 deno bench
 ```
 
-Smoke test manual esperado:
+Expected manual smoke test:
 
 ```ts
 const app = new Box.App();
@@ -370,48 +373,48 @@ const res = await app.fetch(new Request("http://localhost/health"));
 // status 200, body { ok: true }
 ```
 
-Verificações específicas de cold start:
+Specific cold start checks:
 
-- Importar `src/mod.ts` não deve executar side effects.
-- `new App()` não deve carregar logger nem zod.
-- Registrar rotas deve compilar paths uma vez.
-- Cada request deve alocar apenas `URL`, `Context` simples e o mínimo necessário
-  para match.
+- Importing `src/mod.ts` should not execute side effects.
+- `new App()` should not load logger or zod.
+- Registering routes should compile paths once.
+- Each request should allocate only `URL`, simple `Context`, and the minimum
+  necessary for matching.
 
-## Riscos e tradeoffs
+## Risks and tradeoffs
 
-- Regex por rota é simples, mas pode ficar menos eficiente com muitas rotas.
-  Aceitar agora; medir antes de trocar por trie.
-- Zod é útil para DX, mas deve ser opcional para não prejudicar APIs mínimas em
+- Regex per route is simple, but can become less efficient with many routes.
+  Accept for now; measure before switching to a trie.
+- Zod is useful for DX, but should be optional to avoid hurting minimal APIs on
   Edge.
-- Um `Context` muito rico melhora ergonomia, mas aumenta custo por request.
-  Começar pequeno.
-- Manter compatibilidade entre Deno, Cloudflare, Bun e Node pode puxar o design
-  para baixo denominador comum. Priorizar Fetch API no core e adapters
-  separados.
+- A very rich `Context` improves ergonomics, but increases cost per request.
+  Start small.
+- Maintaining compatibility among Deno, Cloudflare, Bun, and Node can pull the
+  design toward the lowest common denominator. Prioritize Fetch API in the core
+  and separate adapters.
 
 ## Open questions
 
-1. O primeiro runtime alvo oficial será Deno Deploy, Cloudflare Workers, AWS
-   Lambda Edge, Bun ou Node serverless?
-2. O pacote deve continuar sendo Deno/JSR-first ou também precisa publicar para
-   npm desde o início?
-3. A validação com Zod deve virar módulo opcional oficial (`box/zod`) ou ficar
-   fora da primeira versão?
-4. O logger atual deve permanecer dentro do pacote principal ou virar submódulo
-   separado para preservar cold start do core?
+1. Will the first official target runtime be Deno Deploy, Cloudflare Workers,
+   AWS Lambda Edge, Bun, or Node serverless?
+2. Should the package remain Deno/JSR-first, or does it also need to publish to
+   npm from the beginning?
+3. Should validation with Zod become an official optional module (`box/zod`) or
+   stay out of the first version?
+4. Should the current logger remain inside the main package or become a separate
+   submodule to preserve the core cold start?
 
-## Sugestão de primeira milestone
+## Suggested first milestone
 
-Implementar apenas isto primeiro:
+Implement only this first:
 
 1. `App` + `app.fetch()`.
-2. Rotas `GET/POST` com params.
+2. `GET/POST` routes with params.
 3. `Box.json()`.
-4. 404 e erro padrão.
-5. Testes de rota, params, query e erro.
-6. README com hello-world.
-7. Benchmark básico de import/criação/dispatch.
+4. 404 and default error.
+5. Tests for route, params, query, and error.
+6. README with hello-world.
+7. Basic benchmark for import/creation/dispatch.
 
-Depois dessa base passar nos testes e benchmarks, expandir
-middleware/body/adapters conforme necessidade real.
+After this base passes the tests and benchmarks, expand middleware/body/adapters
+according to real need.

@@ -1,6 +1,6 @@
-# Rotas e Controllers
+# Routes and Controllers
 
-## Métodos suportados no App
+## Supported App methods
 
 ```ts
 app.get(path, handler);
@@ -14,7 +14,7 @@ app.controller(controller);
 app.fetch(request);
 ```
 
-## Path params e query string
+## Path params and query string
 
 ```ts
 app.get("/users/:id", (ctx) => {
@@ -27,7 +27,7 @@ app.get("/users/:id", (ctx) => {
 
 ## Controllers
 
-Controllers agrupam rotas por contexto REST.
+Controllers group routes by REST context.
 
 ```ts
 class UsersController extends Box.Controller {
@@ -53,7 +53,7 @@ class UsersController extends Box.Controller {
 }
 ```
 
-## Helpers disponíveis em Controller
+## Helpers available in Controller
 
 ```ts
 this.get(path, handler);
@@ -67,7 +67,7 @@ this.head(path, handler);
 
 ## Middlewares
 
-Middlewares seguem o padrão `ctx, next`.
+Middlewares follow the `ctx, next` pattern.
 
 ```ts
 app.use(async (ctx, next) => {
@@ -81,7 +81,7 @@ app.use(async (ctx, next) => {
 });
 ```
 
-## Preflight CORS
+## CORS preflight
 
-Quando `Box.cors()` está registrado, o framework responde preflights globais sem
-exigir que você declare manualmente uma rota `OPTIONS` para cada endpoint.
+When `Box.cors()` is registered, the framework answers global preflights without
+requiring you to manually declare an `OPTIONS` route for each endpoint.

@@ -131,7 +131,7 @@ Deno.test("Performance: router scales across 10, 100 and 500 route tables", asyn
   }
 });
 
-Deno.test("Performance: middlewares e payload JSON pequeno/médio preservam baixa latência", async () => {
+Deno.test("Performance: middlewares and small/medium JSON payloads preserve low latency", async () => {
   const box = await importFreshBoxModule();
   const app = new box.App();
 
