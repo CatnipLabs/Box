@@ -1,1 +1,5 @@
-export type InjectableKind = "controller" | "service" | "repository";
+export type InjectableKind =
+  | "auth-strategy"
+  | "controller"
+  | "service"
+  | "repository";

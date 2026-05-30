@@ -1,4 +1,5 @@
 export { App } from "./app.ts";
+export * from "./auth/index.ts";
 export { createApp } from "./create-app.ts";
 export type { CreateAppOptions } from "./create-app-options.interface.ts";
 export { readJson, readText } from "./body.ts";

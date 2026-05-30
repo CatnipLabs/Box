@@ -1,3 +1,4 @@
+import { AuthStrategy } from "./presentation/http/auth/index.ts";
 import { Service } from "./application/services/index.ts";
 import { Entity, Repository } from "./domain/index.ts";
 import { Logger } from "./infra/logger/index.ts";
@@ -12,6 +13,7 @@ import {
   requestTime,
 } from "./presentation/http/middlewares/index.ts";
 import {
+  Auth,
   Controller,
   Delete,
   Get,
@@ -31,6 +33,8 @@ import { empty, json, redirect, text } from "./presentation/http/response.ts";
 import { cors, secureHeaders } from "./presentation/http/security.ts";
 import { z } from "zod";
 
+export * from "./presentation/http/auth/index.ts";
+export * from "./application/services/index.ts";
 export * from "./core/index.ts";
 export * from "./presentation/controllers/index.ts";
 export * from "./presentation/http/index.ts";
@@ -45,6 +49,8 @@ const Log = {
 
 export const Box = {
   App,
+  Auth,
+  AuthStrategy,
   Controller,
   Delete,
   Entity,

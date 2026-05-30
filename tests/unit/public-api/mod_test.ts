@@ -52,5 +52,37 @@ Deno.test("Public API: Box exposes DDD bases", () => {
   assertEquals(Box.RequestSizeLimit.MB1, 1_048_576);
   assertEquals(typeof Box.createOpenApiDocument, "function");
   assertEquals(typeof Box.createApp, "function");
+  assertEquals(typeof Box.Auth, "function");
+  assertEquals(typeof Box.AuthStrategy, "function");
   assertEquals(typeof Box.z.object, "function");
+});
+
+Deno.test("Public API: Box exposes auth strategy registration and protected routes", async () => {
+  @Box.AuthStrategy({ name: "public-api" })
+  class PublicApiAuthStrategy {
+    public validate(): boolean {
+      return true;
+    }
+  }
+
+  @Box.Controller("/public-api-auth")
+  class PublicApiAuthController {
+    @Box.Get("/")
+    @Box.Auth("public-api")
+    public get(): { ok: true } {
+      return { ok: true };
+    }
+  }
+
+  const app = Box.createApp({
+    authStrategies: [PublicApiAuthStrategy],
+    controllers: [PublicApiAuthController],
+  });
+
+  const response = await app.fetch(
+    new Request("http://localhost/public-api-auth"),
+  );
+
+  assertEquals(response.status, Box.HttpStatus.OK);
+  assertEquals(await response.json(), { ok: true });
 });

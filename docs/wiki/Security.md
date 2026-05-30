@@ -3,6 +3,60 @@
 BOX includes modern security middlewares in the HTTP core, without heavy
 external dependencies.
 
+## Auth strategies
+
+Box protects controllers and endpoints with user-owned auth strategies. The
+framework does not force JWT into the router hot path; instead, a strategy gets
+the full request `Context` and can validate a bearer token, cookie, API key, or
+any other application-specific credential.
+
+```ts
+@Box.Service()
+class TokenService {
+  isValid(token: string | undefined): boolean {
+    return token === "valid-jwt";
+  }
+}
+
+@Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
+class JwtAuthStrategy implements Box.AuthStrategyContract {
+  constructor(private readonly tokens: TokenService) {}
+
+  validate(ctx: Box.Context): boolean {
+    const token = ctx.request.headers.get("authorization")
+      ?.replace(/^Bearer\s+/i, "");
+
+    if (!this.tokens.isValid(token)) return false;
+
+    ctx.state.user = { id: "user_1" };
+    return true;
+  }
+}
+
+@Box.Controller("/admin")
+@Box.Auth("jwt")
+class AdminController {
+  @Box.Get("/")
+  list() {
+    return { ok: true };
+  }
+}
+
+const app = Box.createApp({
+  authStrategies: [JwtAuthStrategy],
+  controllers: [AdminController],
+  services: [TokenService],
+});
+```
+
+A strategy may return `true`/`undefined` to allow the request, `false` to return
+`401 Unauthorized`, a `Response` to short-circuit, or throw `Box.HttpError` to
+use the normal error pipeline. Auth runs before route request validation.
+
+Startup fails fast when a protected route has no registered strategy, when
+multiple strategies are registered and `@Box.Auth()` does not specify which one
+to use, or when the strategy dependency graph violates Box's DI boundaries.
+
 ## Secure headers
 
 ```ts

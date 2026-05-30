@@ -1,3 +1,5 @@
+export { Auth } from "./auth-decorator.ts";
+export type { AuthDecorator } from "./auth-decorator.ts";
 export { Controller } from "./controller.ts";
 export { ControllerBase } from "./controller-base.ts";
 export {

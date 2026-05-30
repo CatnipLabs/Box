@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { HttpMethod } from "../http/types.ts";
+import { getControllerAuth, getRouteAuth } from "./auth-metadata-store.ts";
 import type { ControllerMetadata } from "./controller-metadata.interface.ts";
 import type { ControllerTarget } from "./controller-target.type.ts";
 import type { DecoratedRouteDefinition } from "./decorated-route-definition.interface.ts";
@@ -131,9 +132,15 @@ function enrichRouteOptions(
   const request = params && !options?.request?.params
     ? { ...options?.request, params }
     : options?.request;
+  const constructor = controller.constructor as ControllerTarget;
+  const auth = propertyKey === undefined
+    ? options?.auth ?? getControllerAuth(constructor)
+    : getRouteAuth(controller, propertyKey) ?? options?.auth ??
+      getControllerAuth(constructor);
 
   return {
     ...options,
+    auth,
     operationId: options?.operationId ?? propertyKey?.toString(),
     request,
     tags: options?.tags ?? [getControllerTag(controller)],

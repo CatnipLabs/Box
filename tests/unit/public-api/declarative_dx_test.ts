@@ -33,38 +33,39 @@ class PublicApiPrefix {
   public constructor(public readonly value: string) {}
 }
 
-@Repository()
+@Repository({ deps: [PublicApiPrefix] })
 class PublicUsersRepository {
   public static instances = 0;
 
-  public constructor() {
+  public constructor(private readonly prefix: PublicApiPrefix) {
     PublicUsersRepository.instances += 1;
   }
 
   public findLabel(id: string): string {
-    return `User ${id}`;
+    return `${this.prefix.value}:User ${id}`;
+  }
+
+  public createName(name: string): string {
+    return `${this.prefix.value}:${name}`;
   }
 }
 
-@Service({ deps: [PublicUsersRepository, PublicApiPrefix] })
+@Service({ deps: [PublicUsersRepository] })
 class PublicUsersService {
-  public constructor(
-    private readonly users: PublicUsersRepository,
-    private readonly prefix: PublicApiPrefix,
-  ) {}
+  public constructor(private readonly users: PublicUsersRepository) {}
 
   public find(id: string, includePosts: boolean): Record<string, unknown> {
     return {
       id,
       includePosts,
-      label: `${this.prefix.value}:${this.users.findLabel(id)}`,
+      label: this.users.findLabel(id),
     };
   }
 
   public create(input: PublicCreateUserBody): Record<string, string> {
     return {
       id: "created-user",
-      name: `${this.prefix.value}:${input.name}`,
+      name: this.users.createName(input.name),
     };
   }
 }

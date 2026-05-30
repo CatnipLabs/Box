@@ -1,3 +1,8 @@
+import type {
+  AuthRouteDescriptor,
+  AuthStrategyResolver,
+} from "./auth/index.ts";
+import { runAuthStrategy } from "./auth/index.ts";
 import {
   getControllerPath,
   getControllerRoutes,
@@ -33,7 +38,10 @@ export class App {
   private composedHandler?: Handler;
   private docsOptions?: ResolvedDocsOptions;
 
-  public constructor(options: AppOptions = {}) {
+  public constructor(
+    options: AppOptions = {},
+    private readonly authStrategyResolver?: AuthStrategyResolver,
+  ) {
     this.docsOptions = resolveDocsOptions(options.docs);
   }
 
@@ -136,12 +144,22 @@ export class App {
     handler: Handler,
     options: RouteOptions = {},
   ): this {
-    const routeHandler = createRouteHandler(handler, options);
+    const normalizedPath = normalizeRoutePath(path);
+    const routeHandler = createRouteHandler(
+      handler,
+      options,
+      {
+        method,
+        operationId: options.operationId,
+        path: normalizedPath,
+      },
+      this.authStrategyResolver,
+    );
 
     this.router.add(method, path, routeHandler);
     this.documentedRoutes.push({
       method,
-      path: normalizeRoutePath(path),
+      path: normalizedPath,
       options,
     });
     return this;
@@ -178,14 +196,42 @@ export function registerController(app: App, controller: object): App {
 function createRouteHandler(
   handler: Handler,
   options: RouteOptions,
+  descriptor: AuthRouteDescriptor,
+  authStrategyResolver?: AuthStrategyResolver,
 ): Handler {
+  const authStrategy = options.auth === undefined
+    ? undefined
+    : resolveAuthStrategy(options, descriptor, authStrategyResolver);
+
   return async (ctx) => {
+    if (authStrategy) {
+      const authResponse = await runAuthStrategy(authStrategy, ctx);
+      if (authResponse) return authResponse;
+    }
+
     if (options.request) {
       ctx.validated = await validateRequestContract(ctx, options.request);
     }
 
     return toResponse(await handler(ctx), { status: options.status });
   };
+}
+
+function resolveAuthStrategy(
+  options: RouteOptions,
+  descriptor: AuthRouteDescriptor,
+  authStrategyResolver?: AuthStrategyResolver,
+) {
+  if (options.auth === undefined) return undefined;
+
+  if (!authStrategyResolver) {
+    throw new TypeError(
+      `${descriptor.method} ${descriptor.path} requires at least one auth strategy. ` +
+        "Register an @AuthStrategy class in createApp({ authStrategies: [...] }) before protecting controllers or endpoints.",
+    );
+  }
+
+  return authStrategyResolver(options.auth, descriptor);
 }
 
 function normalizeRoutePath(path: string): string {

@@ -79,3 +79,18 @@ class UsersRepository extends Box.KvRepository<User> {
 
 Because dependencies are explicit, tests can instantiate services/controllers
 directly with doubles or in-memory stores.
+
+## Dependency boundaries
+
+`createApp(...)` validates the Box resource graph before serving requests:
+
+- controllers may inject services only;
+- services may inject services or repositories only;
+- auth strategies may inject services or other auth strategies only;
+- repositories may inject repositories or explicit provider tokens for
+  infrastructure/configuration concerns.
+
+Circular dependencies fail at startup with the detected chain. A service cycle
+is a design smell: it usually means responsibilities from different contexts are
+being mixed into the same service and should be split or moved to the proper
+bounded context.

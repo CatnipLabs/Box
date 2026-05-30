@@ -95,6 +95,49 @@ class AdminUsersController {
 }
 ```
 
+## Route and controller auth
+
+Protect a whole controller or a single endpoint with `@Box.Auth(...)`.
+
+```ts
+@Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
+class JwtAuthStrategy implements Box.AuthStrategyContract {
+  constructor(private readonly tokens: TokenService) {}
+
+  validate(ctx: Box.Context): boolean {
+    const token = ctx.request.headers.get("authorization")
+      ?.replace(/^Bearer\s+/i, "");
+    return this.tokens.isValid(token);
+  }
+}
+
+@Box.Controller("/admin")
+@Box.Auth("jwt")
+class AdminController {
+  @Box.Get("/")
+  public list() {
+    return [{ id: "admin_1" }];
+  }
+
+  @Box.Get("/audit")
+  @Box.Auth("jwt")
+  public audit() {
+    return { ok: true };
+  }
+}
+
+const app = Box.createApp({
+  authStrategies: [JwtAuthStrategy],
+  controllers: [AdminController],
+  services: [TokenService],
+});
+```
+
+`@Box.Auth()` with no argument can be used when exactly one auth strategy is
+registered. With multiple strategies, protected routes must specify the strategy
+name or strategy class token. Legacy `Controller` subclasses can use route
+options: `this.get("/", handler, { auth: "jwt" })`.
+
 ## Route options and Scalar/OpenAPI docs
 
 Route options are attached directly to decorated methods. Zod schemas power

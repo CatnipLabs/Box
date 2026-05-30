@@ -189,6 +189,63 @@ Dependency metadata can use `deps`, `inject`, or `dependencies`. Static
 `inject`/`dependencies` remain supported for compatibility, but decorator
 options are the recommended DX.
 
+Box validates dependency boundaries at startup:
+
+- controllers may inject services only;
+- services may inject services or repositories only;
+- auth strategies may inject services or other auth strategies only;
+- circular dependency graphs fail fast with a message that points to the cycle.
+
+## Auth strategies
+
+Auth is implemented with application-owned strategies. A strategy receives the
+full request `Context`, so it can validate a JWT bearer token, cookie, API key,
+tenant header, or any custom source, and can write claims to `ctx.state`.
+
+```ts
+@Box.Service()
+class TokenService {
+  isValid(token: string | undefined): boolean {
+    return token === "valid-jwt";
+  }
+}
+
+@Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
+class JwtAuthStrategy implements Box.AuthStrategyContract {
+  constructor(private readonly tokens: TokenService) {}
+
+  validate(ctx: Box.Context): boolean {
+    const token = ctx.request.headers.get("authorization")
+      ?.replace(/^Bearer\s+/i, "");
+
+    if (!this.tokens.isValid(token)) return false;
+
+    ctx.state.user = { id: "user_1" };
+    return true;
+  }
+}
+
+@Box.Controller("/admin")
+@Box.Auth("jwt")
+class AdminController {
+  @Box.Get("/")
+  list() {
+    return { ok: true };
+  }
+}
+
+const app = Box.createApp({
+  authStrategies: [JwtAuthStrategy],
+  controllers: [AdminController],
+  services: [TokenService],
+});
+```
+
+Use `@Box.Auth()` without an argument only when the application registers a
+single auth strategy. If a protected endpoint has no strategy, or multiple
+strategies are registered and no specific strategy is selected, `createApp(...)`
+fails during startup.
+
 ## OpenAPI + Scalar documentation with Zod
 
 The same route metadata powers runtime validation and generated docs. Box
