@@ -85,7 +85,7 @@ export class BackgroundJobRunner {
     const intervalMs = Math.max(10, Math.floor(leaseMs / 2));
     let renewalInFlight: Promise<void> | undefined;
     const timer = setInterval(() => {
-      if (renewalInFlight) return;
+      if (renewalInFlight !== undefined) return;
       renewalInFlight = renew()
         .catch((error: unknown) => {
           failWithLockLost(

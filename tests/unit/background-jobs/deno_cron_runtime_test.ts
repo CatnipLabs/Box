@@ -220,8 +220,8 @@ Deno.test("Background job runner: waits for in-flight renewal before releasing l
   class QuicklyFinishingJob extends BackgroundJob {
     public resolve!: () => void;
 
-    public run(): Promise<void> {
-      return new Promise<void>((resolve) => {
+    public async run(): Promise<void> {
+      await new Promise<void>((resolve) => {
         this.resolve = resolve;
       });
     }

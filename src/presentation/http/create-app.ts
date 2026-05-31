@@ -14,44 +14,14 @@ import type {
   ProducerRegistration,
 } from "../../application/messaging/index.ts";
 import { AuthStrategyRegistry } from "./auth/index.ts";
-import { Container } from "../../core/di/index.ts";
+import { Container, type InjectionToken } from "../../core/di/index.ts";
 import { App, registerController } from "./app.ts";
 import type { CreateAppOptions } from "./create-app-options.interface.ts";
 
 export function createApp(options: CreateAppOptions): App {
   const container = new Container({ requireInjectableMetadata: true });
 
-  for (const provider of options.providers ?? []) {
-    container.registerProvider(provider);
-  }
-
-  for (const repository of options.repositories ?? []) {
-    container.register(repository);
-  }
-
-  for (const service of options.services ?? []) {
-    container.register(service);
-  }
-
-  for (const producer of options.producers ?? []) {
-    container.register(producer);
-  }
-
-  for (const backgroundJob of options.backgroundJobs ?? []) {
-    container.register(backgroundJob);
-  }
-
-  for (const consumer of options.consumers ?? []) {
-    container.register(consumer);
-  }
-
-  for (const strategy of options.authStrategies ?? []) {
-    container.register(strategy);
-  }
-
-  for (const controller of options.controllers) {
-    container.register(controller);
-  }
+  registerAppResources(container, options);
 
   container.validateGraph();
 
@@ -139,4 +109,30 @@ export function createApp(options: CreateAppOptions): App {
   }
 
   return app;
+}
+
+function registerAppResources(
+  container: Container,
+  options: CreateAppOptions,
+): void {
+  for (const provider of options.providers ?? []) {
+    container.registerProvider(provider);
+  }
+
+  registerTokens(container, options.repositories);
+  registerTokens(container, options.services);
+  registerTokens(container, options.producers);
+  registerTokens(container, options.backgroundJobs);
+  registerTokens(container, options.consumers);
+  registerTokens(container, options.authStrategies);
+  registerTokens(container, options.controllers);
+}
+
+function registerTokens(
+  container: Container,
+  tokens: readonly InjectionToken[] | undefined,
+): void {
+  for (const token of tokens ?? []) {
+    container.register(token);
+  }
 }
