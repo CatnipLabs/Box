@@ -36,10 +36,18 @@ class PublicApiPrefix {
 
 @Repository({ deps: [PublicApiPrefix] })
 class PublicUsersRepository {
-  public static instances = 0;
+  private static instanceCount = 0;
+
+  public static get instances(): number {
+    return PublicUsersRepository.instanceCount;
+  }
+
+  public static resetInstances(): void {
+    PublicUsersRepository.instanceCount = 0;
+  }
 
   public constructor(private readonly prefix: PublicApiPrefix) {
-    PublicUsersRepository.instances += 1;
+    PublicUsersRepository.instanceCount += 1;
   }
 
   public findLabel(id: string): string {
@@ -102,7 +110,7 @@ class PublicUsersController {
 }
 
 Deno.test("Public DX: @catniplabs/box exposes declarative controllers, DI, typed input, z, and createApp", async () => {
-  PublicUsersRepository.instances = 0;
+  PublicUsersRepository.resetInstances();
 
   const app = createApp({
     controllers: [PublicUsersController],
@@ -173,11 +181,14 @@ Deno.test("Public DX: Box.App no longer exposes low-level route registration met
 });
 
 @Box.Event({ name: "public.user.created" })
-class PublicUserCreatedEvent extends Box.Event<{ userId: string }> {}
+class PublicUserCreatedEvent extends Box.Event<{ userId: string }> {
+  public static readonly eventName = "public.user.created";
+}
 
 @Box.Producer({ event: PublicUserCreatedEvent })
-class PublicUserCreatedProducer extends Box.Producer<PublicUserCreatedEvent> {}
-
+class PublicUserCreatedProducer extends Box.Producer<PublicUserCreatedEvent> {
+  public static readonly testOnly = true;
+}
 @Service({ deps: [PublicUserCreatedProducer] })
 class PublicUserMessagingService {
   public constructor(private readonly producer: PublicUserCreatedProducer) {}

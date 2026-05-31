@@ -1,11 +1,14 @@
 import { type App, Box, type DenoQueueKv } from "../../src/mod.ts";
 
 @Box.Event({ name: "orders.created" })
-class OrderCreatedEvent extends Box.Event<{ orderId: string }> {}
+class OrderCreatedEvent extends Box.Event<{ orderId: string }> {
+  public static readonly eventName = "orders.created";
+}
 
 @Box.Producer({ event: OrderCreatedEvent })
-class OrderCreatedProducer extends Box.Producer<OrderCreatedEvent> {}
-
+class OrderCreatedProducer extends Box.Producer<OrderCreatedEvent> {
+  public static readonly producerName = "orders.created";
+}
 @Box.Service({ deps: [OrderCreatedProducer] })
 class OrdersService {
   public constructor(private readonly producer: OrderCreatedProducer) {}

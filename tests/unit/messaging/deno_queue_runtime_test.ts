@@ -11,14 +11,19 @@ import {
 import { FakeKvQueue } from "../../fixtures/messaging/fake_kv_queue.ts";
 
 @Event({ name: "orders.created" })
-class OrderCreatedEvent extends Event<{ orderId: string }> {}
+class OrderCreatedEvent extends Event<{ orderId: string }> {
+  public static readonly eventName = "orders.created";
+}
 
 @Event({ name: "orders.cancelled" })
-class OrderCancelledEvent extends Event<{ orderId: string }> {}
+class OrderCancelledEvent extends Event<{ orderId: string }> {
+  public static readonly eventName = "orders.cancelled";
+}
 
 @Producer({ event: OrderCreatedEvent })
-class OrderCreatedProducer extends Producer<OrderCreatedEvent> {}
-
+class OrderCreatedProducer extends Producer<OrderCreatedEvent> {
+  public static readonly testOnly = true;
+}
 class RecordingConsumer extends Consumer<OrderCreatedEvent> {
   public readonly handled: OrderCreatedEvent[] = [];
 
@@ -112,7 +117,9 @@ Deno.test("Deno Queues runtime: listener ignores unknown queue values and events
 
 Deno.test("Deno Queues runtime: duplicate event names must use the same event class", () => {
   @Event({ name: "orders.created" })
-  class DuplicateOrderCreatedEvent extends Event<{ orderId: string }> {}
+  class DuplicateOrderCreatedEvent extends Event<{ orderId: string }> {
+    public static readonly eventName = "orders.created";
+  }
 
   const runtime = new DenoQueueRuntime(denoQueues({
     kv: new FakeKvQueue(),

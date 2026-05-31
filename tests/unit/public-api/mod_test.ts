@@ -30,7 +30,9 @@ Deno.test("Public API: Box keeps legacy logger under Log subobject", () => {
 });
 
 Deno.test("Public API: Box exposes DDD bases", () => {
-  class User extends Box.Entity<string> {}
+  class User extends Box.Entity<string> {
+    public static readonly testOnly = true;
+  }
   class UsersRepository extends Box.Repository<User> {
     constructor() {
       super(User);

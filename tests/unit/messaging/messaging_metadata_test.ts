@@ -10,11 +10,14 @@ import {
 } from "../../../src/application/messaging/index.ts";
 
 @Event({ name: "orders.created" })
-class OrderCreatedEvent extends Event<{ orderId: string }> {}
+class OrderCreatedEvent extends Event<{ orderId: string }> {
+  public static readonly eventName = "orders.created";
+}
 
 @Producer({ event: OrderCreatedEvent })
-class OrderCreatedProducer extends Producer<OrderCreatedEvent> {}
-
+class OrderCreatedProducer extends Producer<OrderCreatedEvent> {
+  public static readonly testOnly = true;
+}
 @Consumer({ event: OrderCreatedEvent })
 class OrderCreatedConsumer extends Consumer<OrderCreatedEvent> {
   public handle(event: OrderCreatedEvent): void {
@@ -49,7 +52,9 @@ Deno.test("Messaging metadata: decorators reject blank event names", () => {
   assertThrows(
     () =>
       Event({ name: "   " })(
-        class BlankEvent {},
+        class BlankEvent {
+          public static readonly testOnly = true;
+        },
         { kind: "class", name: "BlankEvent" } as ClassDecoratorContext,
       ),
     TypeError,
@@ -58,12 +63,16 @@ Deno.test("Messaging metadata: decorators reject blank event names", () => {
 });
 
 Deno.test("Messaging metadata: Producer requires an @Event class", () => {
-  class UndecoratedEvent extends Event<{ ok: boolean }> {}
+  class UndecoratedEvent extends Event<{ ok: boolean }> {
+    public static readonly eventName = "undecorated";
+  }
 
   assertThrows(
     () =>
       Producer({ event: UndecoratedEvent })(
-        class InvalidProducer {},
+        class InvalidProducer {
+          public static readonly testOnly = true;
+        },
         { kind: "class", name: "InvalidProducer" } as ClassDecoratorContext,
       ),
     TypeError,
@@ -72,12 +81,16 @@ Deno.test("Messaging metadata: Producer requires an @Event class", () => {
 });
 
 Deno.test("Messaging metadata: Consumer requires an @Event class", () => {
-  class UndecoratedEvent extends Event<{ ok: boolean }> {}
+  class UndecoratedEvent extends Event<{ ok: boolean }> {
+    public static readonly eventName = "undecorated";
+  }
 
   assertThrows(
     () =>
       Consumer({ event: UndecoratedEvent })(
-        class InvalidConsumer {},
+        class InvalidConsumer {
+          public static readonly testOnly = true;
+        },
         { kind: "class", name: "InvalidConsumer" } as ClassDecoratorContext,
       ),
     TypeError,

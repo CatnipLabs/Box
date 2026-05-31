@@ -161,10 +161,18 @@ Deno.test("HTTP: controller path inference handles long class names in linear ti
 
 @Repository()
 class DecoratedUsersRepository {
-  public static instances = 0;
+  private static instanceCount = 0;
+
+  public static get instances(): number {
+    return DecoratedUsersRepository.instanceCount;
+  }
+
+  public static resetInstances(): void {
+    DecoratedUsersRepository.instanceCount = 0;
+  }
 
   public constructor() {
-    DecoratedUsersRepository.instances += 1;
+    DecoratedUsersRepository.instanceCount += 1;
   }
 
   public findName(id: string): string {
@@ -175,10 +183,18 @@ class DecoratedUsersRepository {
 @Service()
 class DecoratedUsersService {
   public static readonly inject = [DecoratedUsersRepository] as const;
-  public static instances = 0;
+  private static instanceCount = 0;
+
+  public static get instances(): number {
+    return DecoratedUsersService.instanceCount;
+  }
+
+  public static resetInstances(): void {
+    DecoratedUsersService.instanceCount = 0;
+  }
 
   public constructor(private readonly users: DecoratedUsersRepository) {
-    DecoratedUsersService.instances += 1;
+    DecoratedUsersService.instanceCount += 1;
   }
 
   public find(id: string): { id: string; name: string } {
@@ -189,10 +205,18 @@ class DecoratedUsersService {
 @Controller("/decorated-di-users")
 class DecoratedDiUsersController {
   public static readonly inject = [DecoratedUsersService] as const;
-  public static instances = 0;
+  private static instanceCount = 0;
+
+  public static get instances(): number {
+    return DecoratedDiUsersController.instanceCount;
+  }
+
+  public static resetInstances(): void {
+    DecoratedDiUsersController.instanceCount = 0;
+  }
 
   public constructor(private readonly users: DecoratedUsersService) {
-    DecoratedDiUsersController.instances += 1;
+    DecoratedDiUsersController.instanceCount += 1;
   }
 
   @Get(":id", {
@@ -206,9 +230,9 @@ class DecoratedDiUsersController {
 }
 
 Deno.test("HTTP: createApp resolves decorated services and repositories as constructor singletons", async () => {
-  DecoratedUsersRepository.instances = 0;
-  DecoratedUsersService.instances = 0;
-  DecoratedDiUsersController.instances = 0;
+  DecoratedUsersRepository.resetInstances();
+  DecoratedUsersService.resetInstances();
+  DecoratedDiUsersController.resetInstances();
 
   const app = createApp({
     controllers: [DecoratedDiUsersController],
@@ -302,11 +326,19 @@ class ProviderClock {
 }
 
 class ProviderSystemClock extends ProviderClock {
-  public static instances = 0;
+  private static instanceCount = 0;
+
+  public static get instances(): number {
+    return ProviderSystemClock.instanceCount;
+  }
+
+  public static resetInstances(): void {
+    ProviderSystemClock.instanceCount = 0;
+  }
 
   public constructor() {
     super();
-    ProviderSystemClock.instances += 1;
+    ProviderSystemClock.instanceCount += 1;
   }
 
   public override now(): string {
@@ -357,7 +389,7 @@ class CustomProviderUsersController {
 }
 
 Deno.test("HTTP: createApp supports value, class, and factory providers", async () => {
-  ProviderSystemClock.instances = 0;
+  ProviderSystemClock.resetInstances();
 
   const app = createApp({
     controllers: [CustomProviderUsersController],

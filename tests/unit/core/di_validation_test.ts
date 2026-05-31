@@ -14,8 +14,9 @@ import {
 } from "../../../src/mod.ts";
 
 @Repository()
-class UsersRepository {}
-
+class UsersRepository {
+  public static readonly testOnly = true;
+}
 @AuthStrategy({ name: "jwt" })
 class JwtAuthStrategy {
   public validate(): boolean {
@@ -45,8 +46,9 @@ Deno.test("DI validation: controller may inject services only", () => {
 
 Deno.test("DI validation: services may inject services or repositories only", () => {
   @Service({ deps: [JwtAuthStrategy] })
-  class InvalidService {}
-
+  class InvalidService {
+    public static readonly testOnly = true;
+  }
   @Controller("/invalid-service", { deps: [InvalidService] })
   class InvalidServiceController {
     @Get("/")
@@ -98,8 +100,9 @@ Deno.test("DI validation: auth strategies may inject services or auth strategies
 
 Deno.test("DI validation: allowed controller, service, repository graph starts", async () => {
   @Service({ deps: [UsersRepository] })
-  class ValidService {}
-
+  class ValidService {
+    public static readonly testOnly = true;
+  }
   @Controller("/valid", { deps: [ValidService] })
   class ValidController {
     @Get("/")
@@ -122,11 +125,13 @@ Deno.test("DI validation: allowed controller, service, repository graph starts",
 
 Deno.test("DI validation: service circular dependencies fail at startup with architecture guidance", () => {
   @Service()
-  class CircularUsersService {}
-
+  class CircularUsersService {
+    public static readonly testOnly = true;
+  }
   @Service()
-  class OrdersService {}
-
+  class OrdersService {
+    public static readonly testOnly = true;
+  }
   Object.assign(CircularUsersService, { dependencies: [OrdersService] });
   Object.assign(OrdersService, { dependencies: [CircularUsersService] });
 
@@ -151,11 +156,13 @@ Deno.test("DI validation: service circular dependencies fail at startup with arc
 
 Deno.test("DI validation: circular dependency error includes architecture warning", () => {
   @Service()
-  class FirstService {}
-
+  class FirstService {
+    public static readonly testOnly = true;
+  }
   @Service()
-  class SecondService {}
-
+  class SecondService {
+    public static readonly testOnly = true;
+  }
   Object.assign(FirstService, { dependencies: [SecondService] });
   Object.assign(SecondService, { dependencies: [FirstService] });
 
@@ -179,11 +186,14 @@ Deno.test("DI validation: circular dependency error includes architecture warnin
 });
 
 @Event({ name: "di.event" })
-class DiEvent extends Event<{ ok: boolean }> {}
+class DiEvent extends Event<{ ok: boolean }> {
+  public static readonly eventName = "di.event";
+}
 
 @Producer({ event: DiEvent })
-class DiProducer extends Producer<DiEvent> {}
-
+class DiProducer extends Producer<DiEvent> {
+  public static readonly testOnly = true;
+}
 @Consumer({ event: DiEvent })
 class DiConsumer extends Consumer<DiEvent> {
   public handle(event: DiEvent): void {
@@ -193,8 +203,9 @@ class DiConsumer extends Consumer<DiEvent> {
 
 Deno.test("DI validation: producers may inject services only", () => {
   @Producer({ event: DiEvent, deps: [UsersRepository] })
-  class InvalidProducer extends Producer<DiEvent> {}
-
+  class InvalidProducer extends Producer<DiEvent> {
+    public static readonly testOnly = true;
+  }
   assertThrows(
     () =>
       createApp({
@@ -262,11 +273,13 @@ Deno.test("DI validation: services may inject producers", async () => {
 
 Deno.test("DI validation: producers and consumers may inject services", () => {
   @Service()
-  class DependencyService {}
-
+  class DependencyService {
+    public static readonly testOnly = true;
+  }
   @Producer({ event: DiEvent, deps: [DependencyService] })
-  class ValidProducer extends Producer<DiEvent> {}
-
+  class ValidProducer extends Producer<DiEvent> {
+    public static readonly testOnly = true;
+  }
   @Consumer({ event: DiEvent, deps: [DependencyService] })
   class ValidConsumer extends Consumer<DiEvent> {
     public constructor(public readonly service: DependencyService) {
@@ -291,8 +304,9 @@ Deno.test("DI validation: producers and consumers may inject services", () => {
 
 Deno.test("DI validation: services may not inject consumers", () => {
   @Service({ deps: [DiConsumer] })
-  class InvalidServiceWithConsumer {}
-
+  class InvalidServiceWithConsumer {
+    public static readonly testOnly = true;
+  }
   assertThrows(
     () =>
       createApp({

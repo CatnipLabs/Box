@@ -12,11 +12,14 @@ import {
 import { FakeKvQueue } from "../fixtures/messaging/fake_kv_queue.ts";
 
 @Event({ name: "orders.created.integration" })
-class OrderCreatedEvent extends Event<{ orderId: string }> {}
+class OrderCreatedEvent extends Event<{ orderId: string }> {
+  public static readonly eventName = "orders.created.integration";
+}
 
 @Producer({ event: OrderCreatedEvent })
-class OrderCreatedProducer extends Producer<OrderCreatedEvent> {}
-
+class OrderCreatedProducer extends Producer<OrderCreatedEvent> {
+  public static readonly testOnly = true;
+}
 @Service({ deps: [OrderCreatedProducer] })
 class OrdersService {
   public readonly processed: string[] = [];

@@ -124,8 +124,9 @@ Deno.test("Core: Controller exposes helpers for all REST methods", () => {
 Deno.test("Core: Repository requires the base Entity", () => {
   assertEquals(new UsersRepository().entityName, "User");
 
-  class NotAnEntity {}
-
+  class NotAnEntity {
+    public static readonly testOnly = true;
+  }
   assertThrows(
     () => new Repository(NotAnEntity as unknown as EntityConstructor),
     TypeError,
