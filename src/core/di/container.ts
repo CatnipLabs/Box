@@ -209,6 +209,8 @@ function isAllowedDependency(
         dependencyKind === "producer";
     case "producer":
       return dependencyKind === "service";
+    case "background-job":
+      return dependencyKind === "service" || dependencyKind === "producer";
     case "consumer":
       return dependencyKind === "service";
     case "auth-strategy":
@@ -226,6 +228,8 @@ function dependencyRuleMessage(kind: InjectableKind): string {
       return "Services may inject services, repositories, or producers only.";
     case "producer":
       return "Producers may inject services only.";
+    case "background-job":
+      return "Background jobs may inject services or producers only.";
     case "consumer":
       return "Consumers may inject services only.";
     case "auth-strategy":

@@ -2,6 +2,11 @@ import {
   getConsumerMetadata,
   getProducerMetadata,
 } from "../../application/messaging/index.ts";
+import { getBackgroundJobMetadata } from "../../application/background-jobs/index.ts";
+import type {
+  BackgroundJobBase,
+  BackgroundJobRegistration,
+} from "../../application/background-jobs/index.ts";
 import type {
   ConsumerBase,
   ConsumerRegistration,
@@ -30,6 +35,10 @@ export function createApp(options: CreateAppOptions): App {
 
   for (const producer of options.producers ?? []) {
     container.register(producer);
+  }
+
+  for (const backgroundJob of options.backgroundJobs ?? []) {
+    container.register(backgroundJob);
   }
 
   for (const consumer of options.consumers ?? []) {
@@ -82,6 +91,30 @@ export function createApp(options: CreateAppOptions): App {
     },
   );
 
+  const backgroundJobs: BackgroundJobRegistration[] = (
+    options.backgroundJobs ?? []
+  ).map((backgroundJob) => {
+    const metadata = getBackgroundJobMetadata(backgroundJob);
+    if (!metadata) {
+      throw new TypeError(
+        "Background job must be decorated with @BackgroundJob",
+      );
+    }
+    return {
+      backoffSchedule: metadata.backoffSchedule,
+      instance: container.resolve(backgroundJob) as BackgroundJobBase,
+      lock: metadata.lock,
+      name: metadata.name,
+      schedule: metadata.schedule,
+    };
+  });
+
+  if (backgroundJobs.length > 0 && !options.scheduler) {
+    throw new TypeError(
+      "Background jobs require createApp({ scheduler: denoCron({ kv }) }).",
+    );
+  }
+
   if ((producers.length > 0 || consumers.length > 0) && !options.queues) {
     throw new TypeError(
       "Messaging producers or consumers require createApp({ queues: denoQueues({ kv }) }).",
@@ -90,6 +123,10 @@ export function createApp(options: CreateAppOptions): App {
 
   if (options.queues) {
     options.queues.createRuntime().bindProducers(producers, consumers);
+  }
+
+  if (options.scheduler) {
+    options.scheduler.createRuntime().bindBackgroundJobs(backgroundJobs);
   }
 
   const app = new App(

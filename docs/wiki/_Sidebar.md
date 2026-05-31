@@ -8,6 +8,7 @@
 - [Auth Strategies](Auth-Strategies)
 - [ORM with Deno KV](ORM-with-Deno-KV)
 - [Messaging with Deno Queues](Messaging-with-Deno-Queues)
+- [Background Jobs with Deno Cron](Background-Jobs-with-Deno-Cron)
 - [Logs, Errors, and Exceptions](Logs-Errors-and-Exceptions)
 - [Security](Security)
 - [Serverless and Performance](Serverless-and-Performance)

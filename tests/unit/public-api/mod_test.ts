@@ -56,9 +56,12 @@ Deno.test("Public API: Box exposes DDD bases", () => {
   assertEquals(typeof Box.createApp, "function");
   assertEquals(typeof Box.Auth, "function");
   assertEquals(typeof Box.AuthStrategy, "function");
+  assertEquals(typeof Box.BackgroundJob, "function");
   assertEquals(typeof Box.Consumer, "function");
+  assertEquals(typeof Box.denoCron, "function");
   assertEquals(typeof Box.denoQueues, "function");
   assertEquals(typeof Box.Event, "function");
+  assertEquals(Box.JobSchedule.EVERY_15_MINUTES, "*/15 * * * *");
   assertEquals(typeof Box.Producer, "function");
   assertEquals(typeof Box.z.object, "function");
 });
@@ -93,6 +96,18 @@ Deno.test("Public API: Box exposes auth strategy registration and protected rout
   assertEquals(await response.json(), { ok: true });
 });
 
+Deno.test("Public API: background-jobs submodule exposes scheduler primitives", async () => {
+  const backgroundJobs = await import("@catniplabs/box/background-jobs");
+  const exposed = backgroundJobs as Record<string, unknown>;
+
+  assertEquals(typeof exposed.BackgroundJob, "function");
+  assertEquals(typeof exposed.denoCron, "function");
+  assertEquals(
+    (exposed.JobSchedule as { readonly HOURLY: string }).HOURLY,
+    "0 * * * *",
+  );
+});
+
 Deno.test("Public API: core submodule remains DI-only and does not export messaging decorators", async () => {
   const core = await import("@catniplabs/box/core");
   const exposed = core as Record<string, unknown>;
@@ -100,4 +115,5 @@ Deno.test("Public API: core submodule remains DI-only and does not export messag
   assertEquals(exposed.Event, undefined);
   assertEquals(exposed.Producer, undefined);
   assertEquals(exposed.Consumer, undefined);
+  assertEquals(exposed.BackgroundJob, undefined);
 });

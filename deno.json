@@ -11,6 +11,7 @@
     "./core": "./src/core/index.ts",
     "./http": "./src/presentation/http/index.ts",
     "./logger": "./src/logger/index.ts",
+    "./background-jobs": "./src/infra/background-jobs/index.ts",
     "./messaging": "./src/infra/messaging/index.ts",
     "./orm": "./src/infra/persistence/kv/index.ts",
     "./adapters/deno": "./src/infra/runtime/deno.ts"

@@ -57,3 +57,25 @@ Deno.test({
     assertEquals(violations, []);
   },
 });
+
+Deno.test({
+  name: "Docs: background jobs docs are linked from primary navigation",
+  permissions: { read: docsRoots },
+  async fn() {
+    const home = await Deno.readTextFile(
+      new URL("docs/wiki/Home.md", repositoryRoot),
+    );
+    const sidebar = await Deno.readTextFile(
+      new URL("docs/wiki/_Sidebar.md", repositoryRoot),
+    );
+    const page = await Deno.readTextFile(
+      new URL("docs/wiki/Background-Jobs-with-Deno-Cron.md", repositoryRoot),
+    );
+
+    assertEquals(home.includes("Background Jobs with Deno Cron"), true);
+    assertEquals(sidebar.includes("Background Jobs with Deno Cron"), true);
+    assertEquals(page.includes("Deno.cron"), true);
+    assertEquals(page.includes("Deno KV"), true);
+    assertEquals(page.includes("JobSchedule"), true);
+  },
+});
