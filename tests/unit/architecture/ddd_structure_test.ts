@@ -215,6 +215,32 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "Architecture: application background jobs do not expose Deno Cron or Deno KV types",
+  permissions: { read: [sourceRoot] },
+  async fn() {
+    const violations: Array<{ file: string; reason: string }> = [];
+
+    for (
+      const file of await collectSourceFiles(
+        new URL("application/background-jobs/", sourceRoot),
+      )
+    ) {
+      const content = await Deno.readTextFile(file);
+      if (/\bDeno\.(?:cron|Kv|KvKey|KvCommitResult)\b/.test(content)) {
+        violations.push({
+          file: relativeToSrc(file),
+          reason:
+            "application background jobs must use framework-owned scheduler abstractions",
+        });
+      }
+    }
+
+    assertEquals(violations, []);
+  },
+});
+
+Deno.test({
   name: "Architecture: layer dependencies follow Clean Architecture",
   permissions: { read: [sourceRoot] },
   async fn() {

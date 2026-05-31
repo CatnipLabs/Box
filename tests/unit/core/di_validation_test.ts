@@ -2,12 +2,14 @@ import { assertEquals, assertThrows } from "@std/assert";
 import {
   Auth,
   AuthStrategy,
+  BackgroundJob,
   Consumer,
   Controller,
   createApp,
   denoQueues,
   Event,
   Get,
+  JobSchedule,
   Producer,
   Repository,
   Service,
@@ -319,6 +321,149 @@ Deno.test("DI validation: services may not inject consumers", () => {
     "Services may inject services, repositories, or producers only",
   );
 });
+
+@BackgroundJob({ name: "di.background", schedule: JobSchedule.EVERY_MINUTE })
+class DiBackgroundJob extends BackgroundJob {
+  public run(): void {
+    // test-only job
+  }
+}
+
+Deno.test("DI validation: background jobs may inject services and producers", () => {
+  @Service({ deps: [DiProducer] })
+  class BackgroundDependencyService {
+    public static readonly testOnly = true;
+  }
+
+  @BackgroundJob({
+    deps: [BackgroundDependencyService, DiProducer],
+    name: "di.valid-background",
+    schedule: JobSchedule.EVERY_MINUTE,
+  })
+  class ValidBackgroundJob extends BackgroundJob {
+    public constructor(
+      public readonly service: BackgroundDependencyService,
+      public readonly producer: DiProducer,
+    ) {
+      super();
+    }
+
+    public run(): void {
+      // test-only job
+    }
+  }
+
+  const app = createApp({
+    backgroundJobs: [ValidBackgroundJob],
+    controllers: [],
+    producers: [DiProducer],
+    queues: denoQueues({ kv: fakeQueueKv() }),
+    scheduler: fakeScheduler(),
+    services: [BackgroundDependencyService],
+  });
+
+  assertEquals(typeof app.fetch, "function");
+});
+
+Deno.test("DI validation: background jobs may inject services or producers only", () => {
+  @BackgroundJob({
+    deps: [UsersRepository],
+    name: "di.invalid-background-repository",
+    schedule: JobSchedule.EVERY_MINUTE,
+  })
+  class InvalidRepositoryBackgroundJob extends BackgroundJob {
+    public run(): void {
+      // test-only job
+    }
+  }
+
+  assertThrows(
+    () =>
+      createApp({
+        backgroundJobs: [InvalidRepositoryBackgroundJob],
+        controllers: [],
+        repositories: [UsersRepository],
+        scheduler: fakeScheduler(),
+      }),
+    TypeError,
+    "Background jobs may inject services or producers only",
+  );
+});
+
+Deno.test("DI validation: background jobs may not inject controllers, consumers, auth strategies, or jobs", () => {
+  @Controller("/invalid-background-controller")
+  class InvalidBackgroundController {
+    @Get("/")
+    public get(): { ok: true } {
+      return { ok: true };
+    }
+  }
+
+  for (
+    const dependency of [
+      InvalidBackgroundController,
+      DiConsumer,
+      JwtAuthStrategy,
+      DiBackgroundJob,
+    ]
+  ) {
+    @BackgroundJob({
+      deps: [dependency],
+      name: `di.invalid-background-${dependency.name}`,
+      schedule: JobSchedule.EVERY_MINUTE,
+    })
+    class InvalidBackgroundJob extends BackgroundJob {
+      public run(): void {
+        // test-only job
+      }
+    }
+
+    assertThrows(
+      () =>
+        createApp({
+          authStrategies: [JwtAuthStrategy],
+          backgroundJobs: [InvalidBackgroundJob, DiBackgroundJob],
+          consumers: [DiConsumer],
+          controllers: [InvalidBackgroundController],
+          queues: denoQueues({ kv: fakeQueueKv() }),
+          scheduler: fakeScheduler(),
+        }),
+      TypeError,
+      "Background jobs may inject services or producers only",
+    );
+  }
+});
+
+Deno.test("DI validation: services may not inject background jobs", () => {
+  @Service({ deps: [DiBackgroundJob] })
+  class InvalidServiceWithBackgroundJob {
+    public static readonly testOnly = true;
+  }
+
+  assertThrows(
+    () =>
+      createApp({
+        backgroundJobs: [DiBackgroundJob],
+        controllers: [],
+        scheduler: fakeScheduler(),
+        services: [InvalidServiceWithBackgroundJob],
+      }),
+    TypeError,
+    "Services may inject services, repositories, or producers only",
+  );
+});
+
+function fakeScheduler() {
+  return {
+    createRuntime() {
+      return {
+        bindBackgroundJobs(): void {
+          // no-op for DI tests
+        },
+      };
+    },
+  };
+}
 
 function fakeQueueKv() {
   return {

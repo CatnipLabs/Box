@@ -1,4 +1,9 @@
 import { assertEquals } from "@std/assert";
+import type {
+  BackgroundJobRegistration,
+  BackgroundJobRuntime,
+  BackgroundJobRuntimeOptions,
+} from "../../../src/mod.ts";
 
 const examplesRoot = new URL("../../../examples/", import.meta.url);
 
@@ -145,6 +150,53 @@ Deno.test("Examples: messaging demonstrates Deno Queues producers and consumers"
   assertEquals(await response.json(), { queued: true });
   assertEquals(kv.enqueued.length, 1);
 });
+
+Deno.test("Examples: background-jobs demonstrates Deno Cron registration", async () => {
+  const example = await import("../../../examples/background-jobs/main.ts");
+  const scheduler = new ExampleBackgroundJobScheduler();
+  const app = example.createBackgroundJobApp(scheduler);
+
+  assertEquals(scheduler.runtime.registrations.length, 1);
+  const registration = scheduler.runtime.registrations[0];
+  assertEquals(registration.name, "inventory.cleanup");
+  assertEquals(registration.schedule, "*/15 * * * *");
+
+  await registration.instance.run({
+    name: registration.name,
+    runId: "example-run",
+    scheduledAt: new Date("2026-05-30T20:00:00.000Z"),
+    signal: new AbortController().signal,
+    startedAt: new Date("2026-05-30T20:00:00.000Z"),
+  });
+
+  const response = await app.fetch(
+    new Request("http://localhost/jobs/inventory-cleanup"),
+  );
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), {
+    lastRunAt: "2026-05-30T20:00:00.000Z",
+    runs: 1,
+  });
+});
+
+class ExampleBackgroundJobScheduler implements BackgroundJobRuntimeOptions {
+  public readonly runtime = new ExampleBackgroundJobRuntime();
+
+  public createRuntime(): BackgroundJobRuntime {
+    return this.runtime;
+  }
+}
+
+class ExampleBackgroundJobRuntime implements BackgroundJobRuntime {
+  public readonly registrations: BackgroundJobRegistration[] = [];
+
+  public bindBackgroundJobs(
+    registrations: readonly BackgroundJobRegistration[],
+  ): void {
+    this.registrations.push(...registrations);
+  }
+}
 
 class ExampleFakeQueue {
   public readonly enqueued: Array<{ value: unknown; options?: unknown }> = [];

@@ -73,6 +73,7 @@ export default {
 | `@catniplabs/box` or `@catniplabs/box/http` | HTTP core, decorators, `createApp`, auth strategies, middlewares, responses, and errors |
 | `@catniplabs/box/core`                      | Explicit DI container, providers, and injectable metadata                               |
 | `@catniplabs/box/orm`                       | Persistence and `KvRepository` for Deno KV                                              |
+| `@catniplabs/box/background-jobs`           | Deno Cron scheduler helpers, `BackgroundJob`, `JobSchedule`, and KV locking             |
 | `@catniplabs/box/messaging`                 | Deno Queue runtime helpers for producers and consumers                                  |
 | `@catniplabs/box/logger`                    | Structured logger                                                                       |
 | `@catniplabs/box/adapters/deno`             | Adapter to run with local/server Deno                                                   |
@@ -155,6 +156,7 @@ export default {
 - [Auth Strategies](Auth-Strategies)
 - [ORM with Deno KV](ORM-with-Deno-KV)
 - [Messaging with Deno Queues](Messaging-with-Deno-Queues)
+- [Background Jobs with Deno Cron](Background-Jobs-with-Deno-Cron)
 - [Logs, Errors, and Exceptions](Logs-Errors-and-Exceptions)
 - [Security](Security)
 - [Serverless and Performance](Serverless-and-Performance)
@@ -178,6 +180,8 @@ Currently implemented features:
 - Base controllers, services, repositories, and entities for DDD.
 - `KvRepository` over Deno KV.
 - Deno Queues messaging with events, producers, and consumers.
+- Deno Cron background jobs with `JobSchedule` presets and Deno KV distributed
+  locking.
 - Response helpers.
 - Body helpers with byte limits.
 - Custom exceptions through `HttpError`.

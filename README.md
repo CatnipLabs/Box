@@ -253,6 +253,56 @@ const app = Box.createApp({
 `keysIfUndelivered`. Local runs may require `--unstable-kv` depending on the
 Deno version.
 
+## Background jobs with Deno Cron
+
+Use `BackgroundJob` for scheduled application work backed by `Deno.cron`. Jobs
+are resolved through Box DI, may inject services or producers only, and are
+protected by a Deno KV atomic lock so only one application instance performs a
+job tick.
+
+```ts
+import { Box } from "@catniplabs/box";
+
+@Box.Service()
+class ReportsService {
+  public async rebuildDailyReports(): Promise<void> {
+    // Keep side effects idempotent because cron jobs can be retried.
+  }
+}
+
+@Box.BackgroundJob({
+  deps: [ReportsService],
+  lock: { leaseMs: 10 * 60 * 1000 },
+  name: "reports.daily-rebuild",
+  schedule: Box.JobSchedule.DAILY_AT_1_AM_UTC,
+  backoffSchedule: [1_000, 5_000, 30_000],
+})
+class DailyReportsJob extends Box.BackgroundJob {
+  public constructor(private readonly reports: ReportsService) {
+    super();
+  }
+
+  public async run(): Promise<void> {
+    await this.reports.rebuildDailyReports();
+  }
+}
+
+const kv = await Deno.openKv();
+const app = Box.createApp({
+  backgroundJobs: [DailyReportsJob],
+  controllers: [HealthController],
+  scheduler: Box.denoCron({ kv }),
+  services: [ReportsService],
+});
+```
+
+Use `Box.JobSchedule` presets such as `EVERY_15_MINUTES` or `HOURLY` when you do
+not want to type cron expressions. UTC presets are named explicitly because Deno
+Cron runs in UTC.
+
+Register jobs at module startup on Deno Deploy; cron definitions should not be
+created lazily inside request handlers.
+
 ## Auth strategies
 
 Auth is implemented with application-owned strategies. A strategy receives the

@@ -1,4 +1,8 @@
 import { AuthStrategy } from "./presentation/http/auth/index.ts";
+import {
+  BackgroundJob,
+  JobSchedule,
+} from "./application/background-jobs/index.ts";
 import { Consumer, Event, Producer } from "./application/messaging/index.ts";
 import { Service } from "./application/services/index.ts";
 import { Entity, Repository } from "./domain/index.ts";
@@ -29,6 +33,7 @@ import { App } from "./presentation/http/app.ts";
 import { createApp } from "./presentation/http/create-app.ts";
 import { readJson, readText } from "./presentation/http/body.ts";
 import { createOpenApiDocument } from "./presentation/http/docs/index.ts";
+import { denoCron } from "./infra/background-jobs/index.ts";
 import { denoQueues } from "./infra/messaging/index.ts";
 import { badRequest, HttpError, notFound } from "./presentation/http/errors.ts";
 import { empty, json, redirect, text } from "./presentation/http/response.ts";
@@ -36,6 +41,7 @@ import { cors, secureHeaders } from "./presentation/http/security.ts";
 import { z } from "zod";
 
 export * from "./presentation/http/auth/index.ts";
+export * from "./application/background-jobs/index.ts";
 export * from "./application/messaging/index.ts";
 export * from "./application/services/index.ts";
 export * from "./core/index.ts";
@@ -43,6 +49,7 @@ export * from "./presentation/controllers/index.ts";
 export * from "./presentation/http/index.ts";
 export * from "./logger/index.ts";
 export * from "./infra/persistence/kv/index.ts";
+export * from "./infra/background-jobs/index.ts";
 export * from "./infra/messaging/index.ts";
 export { z } from "zod";
 
@@ -55,6 +62,7 @@ export const Box = {
   App,
   Auth,
   AuthStrategy,
+  BackgroundJob,
   Consumer,
   Controller,
   Delete,
@@ -64,6 +72,7 @@ export const Box = {
   Head,
   HttpError,
   HttpStatus,
+  JobSchedule,
   KvRepository,
   Log,
   Options,
@@ -78,6 +87,7 @@ export const Box = {
   cors,
   createApp,
   createOpenApiDocument,
+  denoCron,
   denoQueues,
   empty,
   json,
