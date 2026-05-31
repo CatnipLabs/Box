@@ -11,6 +11,9 @@ import {
   z,
 } from "../../../src/mod.ts";
 import type { Body, Param, Query } from "../../../src/mod.ts";
+import {
+  getControllerPath,
+} from "../../../src/presentation/controllers/controller-metadata-store.ts";
 
 const UserIdParams = z.object({ id: z.string().min(1) });
 const CreateUserBody = z.object({ name: z.string().min(1) });
@@ -58,6 +61,14 @@ class AdminUsersController {
   @Get()
   public list(): Array<{ id: string }> {
     return [{ id: "admin_1" }];
+  }
+}
+
+@Controller()
+class HTTPServerController {
+  @Get()
+  public status(): { ok: true } {
+    return { ok: true };
   }
 }
 
@@ -114,6 +125,38 @@ Deno.test("HTTP: controller decorator accepts an explicit prefix when inference 
 
   assertEquals(response.status, 200);
   assertEquals(await response.json(), [{ id: "admin_1" }]);
+});
+
+Deno.test("HTTP: controller decorators infer acronym-heavy names without regex backtracking", async () => {
+  const app = createApp({
+    controllers: [HTTPServerController],
+  });
+
+  const response = await app.fetch(new Request("http://localhost/http-server"));
+
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), { ok: true });
+});
+
+Deno.test("HTTP: controller path inference preserves whole-string lowercase behavior", () => {
+  const controller = {};
+
+  Object.defineProperty(controller, "constructor", {
+    value: { name: "AΣController" },
+  });
+
+  assertEquals(getControllerPath(controller), "/aς");
+});
+
+Deno.test("HTTP: controller path inference handles long class names in linear time", () => {
+  const longName = `${"A".repeat(10_000)}Controller`;
+  const controller = {};
+
+  Object.defineProperty(controller, "constructor", {
+    value: { name: longName },
+  });
+
+  assertEquals(getControllerPath(controller), `/${"a".repeat(10_000)}`);
 });
 
 @Repository()

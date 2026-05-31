@@ -91,17 +91,62 @@ function normalizeControllerPath(path: string): string {
 }
 
 function inferControllerPath(className: string): string {
-  const name = className.replace(/Controller$/, "") || className;
-  const kebab = name
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
-    .toLowerCase();
+  const name = stripControllerSuffix(className);
+  return normalizeControllerPath(toKebabCase(name));
+}
 
-  return normalizeControllerPath(kebab);
+function stripControllerSuffix(className: string): string {
+  const suffix = "Controller";
+  if (!className.endsWith(suffix)) return className;
+
+  return className.slice(0, -suffix.length) || className;
+}
+
+function toKebabCase(value: string): string {
+  const kebab: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index];
+    const previous = value[index - 1];
+    const next = value[index + 1];
+
+    if (
+      index > 0 && isAsciiUppercase(current) &&
+      (isAsciiLowercaseOrDigit(previous) ||
+        (isAsciiUppercase(previous) && isAsciiLowercase(next)))
+    ) {
+      kebab.push("-");
+    }
+
+    kebab.push(current);
+  }
+
+  return kebab.join("").toLowerCase();
+}
+
+function isAsciiUppercase(value: string | undefined): boolean {
+  if (value === undefined) return false;
+
+  const code = value.charCodeAt(0);
+  return code >= 65 && code <= 90;
+}
+
+function isAsciiLowercaseOrDigit(value: string | undefined): boolean {
+  if (value === undefined) return false;
+
+  const code = value.charCodeAt(0);
+  return (code >= 97 && code <= 122) || (code >= 48 && code <= 57);
+}
+
+function isAsciiLowercase(value: string | undefined): boolean {
+  if (value === undefined) return false;
+
+  const code = value.charCodeAt(0);
+  return code >= 97 && code <= 122;
 }
 
 function inferControllerTag(className: string): string {
-  return className.replace(/Controller$/, "") || className;
+  return stripControllerSuffix(className);
 }
 
 function sameRoute(
