@@ -61,14 +61,18 @@ The middleware records:
 
 ```ts
 class UserNotFound extends Box.HttpError {
-  constructor(id: string) {
+  public constructor(id: string) {
     super(404, "User not found", "user_not_found", { id });
   }
 }
 
-app.get("/users/:id", () => {
-  throw new UserNotFound("42");
-});
+@Box.Controller("/users")
+class UsersController {
+  @Box.Get(":id")
+  public findById(): never {
+    throw new UserNotFound("42");
+  }
+}
 ```
 
 ## Error helpers

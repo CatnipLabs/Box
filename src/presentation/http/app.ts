@@ -1,4 +1,12 @@
-import type { Controller } from "../controllers/index.ts";
+import type {
+  AuthRouteDescriptor,
+  AuthStrategyResolver,
+} from "./auth/index.ts";
+import { runAuthStrategy } from "./auth/index.ts";
+import {
+  getControllerPath,
+  getControllerRoutes,
+} from "../controllers/controller-metadata-store.ts";
 import { createContext } from "./context/index.ts";
 import { createOpenApiDocument } from "./docs/create-openapi-document.util.ts";
 import type {
@@ -11,14 +19,17 @@ import { resolveDocsOptions } from "./docs/resolve-docs-options.util.ts";
 import { scalarHtml } from "./docs/scalar-html.util.ts";
 import { validateRequestContract } from "./docs/validate-request-contract.util.ts";
 import { HttpError } from "./errors.ts";
+import { HttpStatus } from "./http-status.enum.ts";
 import { compose } from "./middleware.ts";
 import { Router } from "./router.ts";
-import { json } from "./response.ts";
+import { json, toResponse } from "./response.ts";
 import { errorResponse } from "./responses/index.ts";
 import type { Context, Handler, HttpMethod, Middleware } from "./types.ts";
 import { joinPaths } from "./utils/join-paths.util.ts";
 
 const INTERNAL_ERROR_STATE_KEY = "box.error";
+const REGISTER_ROUTE = Symbol("box.registerRoute");
+const REGISTER_CONTROLLER = Symbol("box.registerController");
 
 export class App {
   private readonly router = new Router();
@@ -27,7 +38,10 @@ export class App {
   private composedHandler?: Handler;
   private docsOptions?: ResolvedDocsOptions;
 
-  public constructor(options: AppOptions = {}) {
+  public constructor(
+    options: AppOptions = {},
+    private readonly authStrategyResolver?: AuthStrategyResolver,
+  ) {
     this.docsOptions = resolveDocsOptions(options.docs);
   }
 
@@ -36,69 +50,9 @@ export class App {
     return this;
   }
 
-  public get(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("GET", path, handler, options);
-  }
-
-  public post(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("POST", path, handler, options);
-  }
-
-  public put(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("PUT", path, handler, options);
-  }
-
-  public patch(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("PATCH", path, handler, options);
-  }
-
-  public delete(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("DELETE", path, handler, options);
-  }
-
-  public options(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("OPTIONS", path, handler, options);
-  }
-
-  public head(path: string, handler: Handler, options?: RouteOptions): this {
-    return this.route("HEAD", path, handler, options);
-  }
-
   public use(middleware: Middleware): this {
     this.middlewares.push(middleware);
     this.composedHandler = undefined;
-    return this;
-  }
-
-  public route(
-    method: HttpMethod,
-    path: string,
-    handler: Handler,
-    options: RouteOptions = {},
-  ): this {
-    const routeHandler = options.request
-      ? createValidatedHandler(handler, options)
-      : handler;
-
-    this.router.add(method, path, routeHandler);
-    this.documentedRoutes.push({
-      method,
-      path: normalizeRoutePath(path),
-      options,
-    });
-    return this;
-  }
-
-  public controller(controller: Controller): this {
-    for (const route of controller.routes()) {
-      this.route(
-        route.method,
-        joinPaths(controller.path, route.path),
-        route.handler,
-        route.options,
-      );
-    }
-
     return this;
   }
 
@@ -110,7 +64,7 @@ export class App {
     const ctx = createContext(request, url, {});
 
     try {
-      return await this.handler()(ctx);
+      return toResponse(await this.handler()(ctx));
     } catch (error) {
       return this.handleError(error, request);
     }
@@ -159,7 +113,7 @@ export class App {
       }
 
       ctx.params = match.params;
-      return await match.handler(ctx);
+      return toResponse(await match.handler(ctx));
     } catch (error) {
       ctx.state[INTERNAL_ERROR_STATE_KEY] = error;
       return this.handleError(error, ctx.request);
@@ -173,22 +127,111 @@ export class App {
 
     return json(
       errorResponse(
-        new HttpError(500, "Internal server error", "internal_server_error"),
+        new HttpError(
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          "Internal server error",
+          "internal_server_error",
+        ),
         request,
       ),
-      { status: 500 },
+      { status: HttpStatus.INTERNAL_SERVER_ERROR },
     );
+  }
+
+  [REGISTER_ROUTE](
+    method: HttpMethod,
+    path: string,
+    handler: Handler,
+    options: RouteOptions = {},
+  ): this {
+    const normalizedPath = normalizeRoutePath(path);
+    const routeHandler = createRouteHandler(
+      handler,
+      options,
+      {
+        method,
+        operationId: options.operationId,
+        path: normalizedPath,
+      },
+      this.authStrategyResolver,
+    );
+
+    this.router.add(method, path, routeHandler);
+    this.documentedRoutes.push({
+      method,
+      path: normalizedPath,
+      options,
+    });
+    return this;
+  }
+
+  [REGISTER_CONTROLLER](controller: object): this {
+    for (const route of getControllerRoutes(controller)) {
+      this[REGISTER_ROUTE](
+        route.method,
+        joinPaths(getControllerPath(controller), route.path),
+        route.handler,
+        route.options,
+      );
+    }
+
+    return this;
   }
 }
 
-function createValidatedHandler(
+export function registerRoute(
+  app: App,
+  method: HttpMethod,
+  path: string,
+  handler: Handler,
+  options?: RouteOptions,
+): App {
+  return app[REGISTER_ROUTE](method, path, handler, options);
+}
+
+export function registerController(app: App, controller: object): App {
+  return app[REGISTER_CONTROLLER](controller);
+}
+
+function createRouteHandler(
   handler: Handler,
   options: RouteOptions,
+  descriptor: AuthRouteDescriptor,
+  authStrategyResolver?: AuthStrategyResolver,
 ): Handler {
+  const authStrategy = options.auth === undefined
+    ? undefined
+    : resolveAuthStrategy(options, descriptor, authStrategyResolver);
+
   return async (ctx) => {
-    ctx.validated = await validateRequestContract(ctx, options.request);
-    return await handler(ctx);
+    if (authStrategy) {
+      const authResponse = await runAuthStrategy(authStrategy, ctx);
+      if (authResponse) return authResponse;
+    }
+
+    if (options.request) {
+      ctx.validated = await validateRequestContract(ctx, options.request);
+    }
+
+    return toResponse(await handler(ctx), { status: options.status });
   };
+}
+
+function resolveAuthStrategy(
+  options: RouteOptions,
+  descriptor: AuthRouteDescriptor,
+  authStrategyResolver?: AuthStrategyResolver,
+) {
+  if (options.auth === undefined) return undefined;
+
+  if (!authStrategyResolver) {
+    throw new TypeError(
+      `${descriptor.method} ${descriptor.path} requires at least one auth strategy. ` +
+        "Register an @AuthStrategy class in createApp({ authStrategies: [...] }) before protecting controllers or endpoints.",
+    );
+  }
+
+  return authStrategyResolver(options.auth, descriptor);
 }
 
 function normalizeRoutePath(path: string): string {

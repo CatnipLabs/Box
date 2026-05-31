@@ -1,6 +1,10 @@
 export { App } from "./app.ts";
+export * from "./auth/index.ts";
+export { createApp } from "./create-app.ts";
+export type { CreateAppOptions } from "./create-app-options.interface.ts";
 export { readJson, readText } from "./body.ts";
 export { createOpenApiDocument } from "./docs/index.ts";
+export { HttpStatus } from "./http-status.enum.ts";
 export type {
   AppOptions,
   DocsOptions,
@@ -21,6 +25,17 @@ export {
   payloadTooLarge,
 } from "./errors.ts";
 export { compose } from "./middleware.ts";
+export {
+  payloadLimit,
+  rateLimit,
+  RequestSizeLimit,
+  requestTime,
+} from "./middlewares/index.ts";
+export type {
+  PayloadLimitOptions,
+  RateLimitOptions,
+  RequestTimeOptions,
+} from "./middlewares/index.ts";
 export { empty, json, redirect, text } from "./response.ts";
 export { cors, secureHeaders } from "./security.ts";
 export type {

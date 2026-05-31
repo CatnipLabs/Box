@@ -1,5 +1,6 @@
 import { assertEquals, assertMatch, assertThrows } from "@std/assert";
 import { assertSpyCalls, stub } from "@std/testing/mock";
+import { registerRoute } from "../../../src/presentation/http/app.ts";
 
 import { App, json } from "../../../src/presentation/http/index.ts";
 import {
@@ -298,7 +299,7 @@ Deno.test("requestLogger: uses default logger when none is provided", async () =
   using logStub = stub(console, "log");
 
   app.use(requestLogger({ now: () => times.shift() ?? 2 }));
-  app.get("/health", () => json({ ok: true }));
+  registerRoute(app, "GET", "/health", () => json({ ok: true }));
 
   const response = await app.fetch(new Request("http://localhost/health"));
 
@@ -321,7 +322,7 @@ Deno.test("requestLogger: records structured error and rethrows the exception", 
   const times = [5, 8];
 
   app.use(requestLogger({ logger, now: () => times.shift() ?? 8 }));
-  app.get("/boom", () => {
+  registerRoute(app, "GET", "/boom", () => {
     throw "raw failure";
   });
 
@@ -380,7 +381,12 @@ Deno.test("requestLogger: records structured access log with requestId and durat
     logger,
     now: () => times.shift() ?? 17,
   }));
-  app.get("/users/:id", () => json({ ok: true }, { status: 201 }));
+  registerRoute(
+    app,
+    "GET",
+    "/users/:id",
+    () => json({ ok: true }, { status: 201 }),
+  );
 
   const response = await app.fetch(
     new Request("http://localhost/users/123?debug=true", {

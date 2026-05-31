@@ -1,22 +1,49 @@
+import { AuthStrategy } from "./presentation/http/auth/index.ts";
+import { Consumer, Event, Producer } from "./application/messaging/index.ts";
 import { Service } from "./application/services/index.ts";
 import { Entity, Repository } from "./domain/index.ts";
 import { Logger } from "./infra/logger/index.ts";
 import { Levels } from "./infra/logger/levels.enum.ts";
 import { KvRepository } from "./infra/persistence/kv/index.ts";
 import { requestLogger } from "./presentation/http/logging/index.ts";
-import { Controller } from "./presentation/controllers/index.ts";
+import { HttpStatus } from "./presentation/http/http-status.enum.ts";
+import {
+  payloadLimit,
+  rateLimit,
+  RequestSizeLimit,
+  requestTime,
+} from "./presentation/http/middlewares/index.ts";
+import {
+  Auth,
+  Controller,
+  Delete,
+  Get,
+  Head,
+  Options,
+  Patch,
+  Post,
+  Put,
+  Route,
+} from "./presentation/controllers/index.ts";
 import { App } from "./presentation/http/app.ts";
+import { createApp } from "./presentation/http/create-app.ts";
 import { readJson, readText } from "./presentation/http/body.ts";
 import { createOpenApiDocument } from "./presentation/http/docs/index.ts";
+import { denoQueues } from "./infra/messaging/index.ts";
 import { badRequest, HttpError, notFound } from "./presentation/http/errors.ts";
 import { empty, json, redirect, text } from "./presentation/http/response.ts";
 import { cors, secureHeaders } from "./presentation/http/security.ts";
 import { z } from "zod";
 
+export * from "./presentation/http/auth/index.ts";
+export * from "./application/messaging/index.ts";
+export * from "./application/services/index.ts";
 export * from "./core/index.ts";
+export * from "./presentation/controllers/index.ts";
 export * from "./presentation/http/index.ts";
 export * from "./logger/index.ts";
 export * from "./infra/persistence/kv/index.ts";
+export * from "./infra/messaging/index.ts";
 export { z } from "zod";
 
 const Log = {
@@ -26,23 +53,43 @@ const Log = {
 
 export const Box = {
   App,
+  Auth,
+  AuthStrategy,
+  Consumer,
   Controller,
+  Delete,
   Entity,
+  Event,
+  Get,
+  Head,
   HttpError,
+  HttpStatus,
   KvRepository,
   Log,
+  Options,
+  Patch,
+  Post,
+  Producer,
+  Put,
   Repository,
+  Route,
   Service,
   badRequest,
   cors,
+  createApp,
   createOpenApiDocument,
+  denoQueues,
   empty,
   json,
   notFound,
+  payloadLimit,
+  rateLimit,
   readJson,
   readText,
   redirect,
   requestLogger,
+  RequestSizeLimit,
+  requestTime,
   secureHeaders,
   text,
   z,

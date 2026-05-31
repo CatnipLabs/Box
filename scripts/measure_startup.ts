@@ -4,8 +4,14 @@ const startedAt = performance.now();
 const module = await import("../src/mod.ts");
 const importedAt = performance.now();
 
+const routeModule = await import("../src/presentation/http/app.ts");
 const app = new module.App();
-app.get("/health", () => module.json({ ok: true }));
+routeModule.registerRoute(
+  app,
+  "GET",
+  "/health",
+  () => module.json({ ok: true }),
+);
 const readyAt = performance.now();
 
 const response = await app.fetch(new Request("http://localhost/health"));

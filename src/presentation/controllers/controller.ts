@@ -1,76 +1,47 @@
-import type { RouteOptions } from "../http/docs/index.ts";
-import type { Handler, HttpMethod } from "../http/types.ts";
-import type { RouteDefinition } from "./route-definition.interface.ts";
+import { markInjectable } from "../../core/di/index.ts";
+import { ControllerBase } from "./controller-base.ts";
+import type { ControllerDecoratorOptions } from "./controller-decorator-options.interface.ts";
+import type { ControllerDecorator } from "./controller-decorator.type.ts";
+import type { ControllerTarget } from "./controller-target.type.ts";
+import { setControllerPath } from "./controller-metadata-store.ts";
 
-export class Controller {
-  public readonly path: string = "/";
+function createControllerDecorator(
+  path?: string,
+  options?: ControllerDecoratorOptions,
+) {
+  return (target: ControllerTarget, context: ClassDecoratorContext): void => {
+    if (context.kind !== "class") {
+      throw new TypeError("@Controller can only decorate classes");
+    }
 
-  public routes(): RouteDefinition[] {
-    return [];
-  }
-
-  protected route(
-    method: HttpMethod,
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return { method, path, handler, options };
-  }
-
-  protected get(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("GET", path, handler, options);
-  }
-
-  protected post(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("POST", path, handler, options);
-  }
-
-  protected put(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("PUT", path, handler, options);
-  }
-
-  protected patch(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("PATCH", path, handler, options);
-  }
-
-  protected delete(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("DELETE", path, handler, options);
-  }
-
-  protected options(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("OPTIONS", path, handler, options);
-  }
-
-  protected head(
-    path: string,
-    handler: Handler,
-    options?: RouteOptions,
-  ): RouteDefinition {
-    return this.route("HEAD", path, handler, options);
-  }
+    markInjectable(target, "controller", options);
+    setControllerPath(target, path);
+  };
 }
+
+function ControllerRuntime(
+  this: ControllerBase | undefined,
+  pathOrOptions?: string | ControllerDecoratorOptions,
+  options?: ControllerDecoratorOptions,
+) {
+  if (new.target) {
+    Object.defineProperty(this, "path", {
+      configurable: true,
+      enumerable: true,
+      value: "/",
+      writable: false,
+    });
+    return;
+  }
+
+  if (typeof pathOrOptions === "object") {
+    return createControllerDecorator(pathOrOptions.path, pathOrOptions);
+  }
+
+  return createControllerDecorator(pathOrOptions, options);
+}
+
+ControllerRuntime.prototype = ControllerBase.prototype;
+Object.setPrototypeOf(ControllerRuntime, ControllerBase);
+
+export const Controller = ControllerRuntime as unknown as ControllerDecorator;

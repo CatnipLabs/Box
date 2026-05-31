@@ -6,6 +6,10 @@ import type { RouteMatch } from "./route-match.interface.ts";
 import type { RouterMiss } from "./router-miss.interface.ts";
 import { normalizePath } from "./normalize-path.util.ts";
 
+function compareAlphabetically(left: string, right: string): number {
+  return left.localeCompare(right);
+}
+
 export class Router {
   private readonly routes: Route[] = [];
   private readonly staticRoutes = new Map<string, Map<string, Route>>();
@@ -79,7 +83,7 @@ export class Router {
     if (allowedMethods.size > 0) {
       return {
         error: methodNotAllowed(),
-        allowedMethods: [...allowedMethods].sort(),
+        allowedMethods: [...allowedMethods].toSorted(compareAlphabetically),
       };
     }
 

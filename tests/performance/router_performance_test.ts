@@ -1,4 +1,5 @@
 import { assertEquals, assertLessOrEqual } from "@std/assert";
+import { registerRoute } from "../../src/presentation/http/app.ts";
 
 type BoxModule = typeof import("../../src/mod.ts");
 type BoxContext = import("../../src/mod.ts").Context;
@@ -23,7 +24,7 @@ async function importFreshBoxModule(): Promise<BoxModule> {
 }
 
 function summarize(durations: number[]): PerformanceSample {
-  const sorted = [...durations].sort((left, right) => left - right);
+  const sorted = durations.toSorted((left, right) => left - right);
   const totalMs = durations.reduce((total, duration) => total + duration, 0);
   const p95Index = Math.ceil(sorted.length * 0.95) - 1;
 
@@ -60,14 +61,24 @@ function registerRoutes(
   count: number,
 ): void {
   for (let index = 0; index < count; index++) {
-    app.get(`/static-${index}`, () => box.json({ ok: true, index }));
-    app.get(`/tenants/:tenantId/resources-${index}/:id`, (ctx: BoxContext) => {
-      return box.json({
-        tenantId: ctx.params.tenantId,
-        id: ctx.params.id,
-        index,
-      });
-    });
+    registerRoute(
+      app,
+      "GET",
+      `/static-${index}`,
+      () => box.json({ ok: true, index }),
+    );
+    registerRoute(
+      app,
+      "GET",
+      `/tenants/:tenantId/resources-${index}/:id`,
+      (ctx: BoxContext) => {
+        return box.json({
+          tenantId: ctx.params.tenantId,
+          id: ctx.params.id,
+          index,
+        });
+      },
+    );
   }
 }
 
@@ -77,7 +88,7 @@ Deno.test("Performance: public entrypoint cold import, setup and first request s
   const importMs = performance.now() - importStartedAt;
 
   const app = new box.App();
-  app.get("/health", () => box.json({ ok: true }));
+  registerRoute(app, "GET", "/health", () => box.json({ ok: true }));
 
   const firstRequestStartedAt = performance.now();
   const response = await app.fetch(new Request("http://localhost/health"));
@@ -93,7 +104,7 @@ Deno.test("Performance: router dispatch keeps low latency under repeated in-proc
   const box = await importFreshBoxModule();
   const app = new box.App();
 
-  app.get("/users/:id", (ctx: BoxContext) => {
+  registerRoute(app, "GET", "/users/:id", (ctx: BoxContext) => {
     return box.json({ id: ctx.params.id, active: ctx.query.get("active") });
   });
 
@@ -144,8 +155,8 @@ Deno.test("Performance: middlewares and small/medium JSON payloads preserve low 
     });
   }
 
-  app.get("/ping", () => box.json({ ok: true }));
-  app.post("/echo", async (ctx: BoxContext) => {
+  registerRoute(app, "GET", "/ping", () => box.json({ ok: true }));
+  registerRoute(app, "POST", "/echo", async (ctx: BoxContext) => {
     const payload = await ctx.json<{ items: string[] }>({ maxBytes: 32_768 });
     return box.json({ count: payload.items.length });
   });

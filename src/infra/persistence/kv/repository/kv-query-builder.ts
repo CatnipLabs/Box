@@ -87,21 +87,19 @@ export class KvQueryBuilder<TEntity extends Entity<KvEntityId>> {
     }
 
     if (this.sort) {
-      entities.sort((left, right) =>
+      const sort = this.sort;
+      const sortedEntities = entities.toSorted((left, right) =>
         compareValues(
-          left[this.sort!.field],
-          right[this.sort!.field],
-          this.sort!.direction,
+          left[sort.field],
+          right[sort.field],
+          sort.direction,
         )
       );
-    }
-
-    if (this.sort) {
       const start = options.skip;
       const end = options.maxResults === undefined
         ? undefined
         : start + options.maxResults;
-      return entities.slice(start, end);
+      return sortedEntities.slice(start, end);
     }
 
     return entities;

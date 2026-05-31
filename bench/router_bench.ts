@@ -1,4 +1,6 @@
 import { App, json } from "../src/mod.ts";
+import { registerRoute } from "../src/presentation/http/app.ts";
+import type { Context } from "../src/mod.ts";
 
 function buildApp(routeCount: number, middlewareCount = 0): App {
   const app = new App();
@@ -12,8 +14,18 @@ function buildApp(routeCount: number, middlewareCount = 0): App {
   }
 
   for (let index = 0; index < routeCount; index++) {
-    app.get(`/static-${index}`, () => json({ ok: true, index }));
-    app.get(`/users-${index}/:id`, (ctx) => json({ id: ctx.params.id, index }));
+    registerRoute(
+      app,
+      "GET",
+      `/static-${index}`,
+      () => json({ ok: true, index }),
+    );
+    registerRoute(
+      app,
+      "GET",
+      `/users-${index}/:id`,
+      (ctx: Context) => json({ id: ctx.params.id, index }),
+    );
   }
 
   return app;
@@ -21,7 +33,7 @@ function buildApp(routeCount: number, middlewareCount = 0): App {
 
 Deno.bench("App: create app with one route", () => {
   const app = new App();
-  app.get("/health", () => json({ ok: true }));
+  registerRoute(app, "GET", "/health", () => json({ ok: true }));
 });
 
 const singleRouteApp = buildApp(1);

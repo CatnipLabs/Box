@@ -46,6 +46,8 @@ Every new feature should include, when applicable:
 - error tests
 - HTTP response contract
 - integration with controller/service/repository
+- auth fail-closed behavior for protected routes and strategies
+- DI boundary and circular dependency validation
 - security/logging impact
 - performance/cold start impact
 
@@ -76,9 +78,8 @@ docs: publish framework wiki
 
 ## Recommended roadmap
 
-- OpenAPI/Scalar documentation route generated automatically from code
-  contracts.
-- Indexes/materialized access patterns for large Deno KV queries.
+- More persistence adapters and indexed/materialized access patterns for large
+  Deno KV queries.
 - More serverless adapters.
 - Project templates.
 - Package publishing guide.

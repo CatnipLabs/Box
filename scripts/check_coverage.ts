@@ -59,7 +59,7 @@ function parseCoverage(output: string): {
   function: number;
 } {
   const ansiEscapePattern = new RegExp(
-    `${String.fromCharCode(27)}\\[[0-9;]*m`,
+    `${String.fromCodePoint(27)}\\[[0-9;]*m`,
     "g",
   );
   const summaryLine = output.split("\n").map((line) =>

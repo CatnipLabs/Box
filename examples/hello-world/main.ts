@@ -1,9 +1,34 @@
-import { Box } from "../../src/mod.ts";
+import { Box, type Param, z } from "../../src/mod.ts";
 
-const app = new Box.App();
+const HelloParams = z.object({
+  name: z.string().min(1),
+});
 
-app.get("/health", () => Box.json({ ok: true }));
-app.get("/hello/:name", (ctx) => Box.json({ hello: ctx.params.name }));
+type HelloParams = z.infer<typeof HelloParams>;
+
+@Box.Controller("/health")
+class HealthController {
+  @Box.Get()
+  public health(): { ok: true } {
+    return { ok: true };
+  }
+}
+
+@Box.Controller("/hello")
+class HelloController {
+  @Box.Get(":name", {
+    request: {
+      params: HelloParams,
+    },
+  })
+  public hello(input: Param<HelloParams>): { hello: string } {
+    return { hello: input.params.name };
+  }
+}
+
+const app = Box.createApp({
+  controllers: [HealthController, HelloController],
+});
 
 export default {
   fetch: (request: Request) => app.fetch(request),

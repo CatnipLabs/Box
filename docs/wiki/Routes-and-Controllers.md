@@ -1,76 +1,218 @@
 # Routes and Controllers
 
-## Supported App methods
+## Primary bootstrap API
+
+Box's recommended application entrypoint is `createApp` with explicit
+controller, service, repository, and provider lists:
 
 ```ts
-app.get(path, handler);
-app.post(path, handler);
-app.put(path, handler);
-app.patch(path, handler);
-app.delete(path, handler);
-app.options(path, handler);
-app.head(path, handler);
-app.controller(controller);
-app.fetch(request);
-```
-
-## Path params and query string
-
-```ts
-app.get("/users/:id", (ctx) => {
-  return Box.json({
-    id: ctx.params.id,
-    search: ctx.query.get("q"),
-  });
+const app = Box.createApp({
+  controllers: [UsersController],
+  services: [UsersService],
+  repositories: [UsersRepository],
+  providers: [{ provide: Config, useValue: config }],
+  docs: { enabled: true, title: "Users API", version: "1.0.0" },
 });
 ```
 
-## Controllers
+The returned app still exposes `fetch(request)` for Web Standard runtimes and
+`use(middleware)` for cross-cutting middleware.
 
-Controllers group routes by REST context.
+Route handlers may return a `Response` when they need full control, or return a
+DTO directly. Box automatically serializes non-`Response` values as JSON.
+
+## Path params, query string, and body
 
 ```ts
-class UsersController extends Box.Controller {
-  override readonly path = "/users";
+import { type Body, Box, type Param, type Query, z } from "@catniplabs/box";
 
-  constructor(private readonly users: UsersService) {
-    super();
+const UserIdParams = z.object({ id: z.string().min(1) });
+const UserQuery = z.object({ search: z.string().optional() });
+const CreateUserRequest = z.object({ name: z.string().min(1) });
+
+type UserIdParams = z.infer<typeof UserIdParams>;
+type UserQuery = z.infer<typeof UserQuery>;
+type CreateUserRequest = z.infer<typeof CreateUserRequest>;
+
+@Box.Controller("/users")
+class UsersController {
+  @Box.Get(":id", { request: { params: UserIdParams, query: UserQuery } })
+  public findById(input: Param<UserIdParams> & Query<UserQuery>) {
+    return { id: input.params.id, search: input.query.search };
   }
 
-  override routes() {
-    return [
-      this.get(":id", (ctx) => this.findById(ctx)),
-      this.post("/", (ctx) => this.create(ctx)),
-      this.put(":id", (ctx) => this.update(ctx)),
-      this.delete(":id", (ctx) => this.remove(ctx)),
-    ];
-  }
-
-  private async findById(ctx) {
-    const user = await this.users.getById(ctx.params.id);
-    return Box.json(user);
+  @Box.Post("/", {
+    status: Box.HttpStatus.CREATED,
+    request: { body: CreateUserRequest },
+  })
+  public create(input: Body<CreateUserRequest>) {
+    return { id: crypto.randomUUID(), name: input.body.name };
   }
 }
 ```
 
-## Helpers available in Controller
+## Controllers with decorators
+
+Controllers group routes by REST context. A controller class named
+`UsersController` can be mounted under `/users` explicitly, or can rely on
+inference when the class name is conventional.
 
 ```ts
-this.get(path, handler);
-this.post(path, handler);
-this.put(path, handler);
-this.patch(path, handler);
-this.delete(path, handler);
-this.options(path, handler);
-this.head(path, handler);
+@Box.Controller("/users", { deps: [UsersService] })
+class UsersController {
+  public constructor(private readonly users: UsersService) {}
+
+  @Box.Get(":id", { request: { params: UserIdParams } })
+  public async findById(input: Param<UserIdParams>) {
+    return await this.users.getById(input.params.id);
+  }
+
+  @Box.Post("/", {
+    status: Box.HttpStatus.CREATED,
+    request: { body: CreateUserRequest },
+  })
+  public async create(input: Body<CreateUserRequest>) {
+    return await this.users.create(input.body);
+  }
+}
+
+const app = Box.createApp({
+  controllers: [UsersController],
+  services: [UsersService],
+  repositories: [UsersRepository],
+});
+```
+
+For irregular prefixes, pass one explicitly:
+
+```ts
+@Box.Controller("/admin/users")
+class AdminUsersController {
+  @Box.Get()
+  public list() {
+    return [{ id: "admin_1" }];
+  }
+}
+```
+
+## Route and controller auth
+
+Protect a whole controller or a single endpoint with `@Box.Auth(...)`. Auth runs
+after the router matches a route and before Zod request validation.
+
+```ts
+import { type AuthStrategyContract, Box, type Context } from "@catniplabs/box";
+
+@Box.Service()
+class TokenService {
+  public isValid(token: string | undefined): boolean {
+    return token === "valid-jwt";
+  }
+}
+
+@Box.AuthStrategy({ name: "jwt", deps: [TokenService] })
+class JwtAuthStrategy implements AuthStrategyContract {
+  constructor(private readonly tokens: TokenService) {}
+
+  validate(ctx: Context): boolean {
+    const token = ctx.request.headers.get("authorization")
+      ?.replace(/^Bearer\s+/i, "");
+    return this.tokens.isValid(token);
+  }
+}
+
+@Box.Controller("/admin")
+@Box.Auth("jwt")
+class AdminController {
+  @Box.Get("/")
+  public list() {
+    return [{ id: "admin_1" }];
+  }
+
+  @Box.Get("/audit")
+  @Box.Auth("jwt")
+  public audit() {
+    return { ok: true };
+  }
+}
+
+const app = Box.createApp({
+  authStrategies: [JwtAuthStrategy],
+  controllers: [AdminController],
+  services: [TokenService],
+});
+```
+
+`@Box.Auth()` with no argument can be used when exactly one auth strategy is
+registered. With multiple strategies, protected routes must specify the strategy
+name or strategy class token. Empty/unknown names, duplicate strategy names, and
+non-`@Box.AuthStrategy` registrations fail during startup.
+
+Legacy `Controller` subclasses can use route options:
+`this.get("/", handler, { auth: "jwt" })`.
+
+## Route options and Scalar/OpenAPI docs
+
+Route options are attached directly to decorated methods. Zod schemas power
+request validation and automatic Scalar/OpenAPI docs.
+
+```ts
+const CreateUserRequest = z.object({ name: z.string().min(1) });
+const UserResponse = z.object({ id: z.string(), name: z.string() });
+
+type CreateUserRequest = z.infer<typeof CreateUserRequest>;
+
+@Box.Controller("/users")
+class UsersController {
+  @Box.Post("/", {
+    status: Box.HttpStatus.CREATED,
+    summary: "Create user",
+    request: { body: CreateUserRequest },
+    responses: {
+      [Box.HttpStatus.CREATED]: {
+        description: "User created",
+        body: UserResponse,
+      },
+    },
+  })
+  public create(input: Body<CreateUserRequest>) {
+    return { id: crypto.randomUUID(), name: input.body.name };
+  }
+}
+```
+
+Defaults applied by endpoint decorators:
+
+- `summary` remains explicit because it is human-facing.
+- `operationId` defaults to the decorated method name.
+- `tags` defaults to the controller class name without the `Controller` suffix.
+- `request.params` is inferred from route tokens such as `:id` as string params;
+  pass an explicit Zod schema when params need stricter validation.
+- Prefer `Box.HttpStatus` over numeric status codes in route metadata,
+  responses, and exceptions.
+
+## Legacy controller base class
+
+The previous explicit controller base class remains supported for compatibility,
+but new code should prefer decorated classes registered through `createApp`.
+
+```ts
+class LegacyUsersController extends Box.Controller {
+  override readonly path = "/users";
+
+  override routes() {
+    return [this.get(":id", (ctx) => ({ id: ctx.params.id }))];
+  }
+}
 ```
 
 ## Middlewares
 
-Middlewares follow the `ctx, next` pattern.
+Middlewares follow the `ctx, next` pattern and are registered on the app
+returned by `createApp`.
 
 ```ts
-app.use(async (ctx, next) => {
+app.use(async (_ctx, next) => {
   const startedAt = performance.now();
   const response = await next();
   response.headers.set(

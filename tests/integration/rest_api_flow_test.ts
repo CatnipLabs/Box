@@ -16,6 +16,7 @@ import {
 import { Levels, Logger } from "../../src/infra/logger/index.ts";
 import type { LogRecord } from "../../src/infra/logger/index.ts";
 import { MemoryKv } from "../fixtures/orm/memory_kv.ts";
+import { registerController } from "../../src/presentation/http/app.ts";
 
 interface TodoPayload {
   title?: string;
@@ -168,7 +169,7 @@ function createTodoApp(logs: LogRecord[]): App {
       now: deterministicClock([10, 13, 20, 24, 30, 35]),
     }),
   );
-  app.controller(controller);
+  registerController(app, controller);
 
   return app;
 }
