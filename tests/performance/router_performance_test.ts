@@ -24,7 +24,7 @@ async function importFreshBoxModule(): Promise<BoxModule> {
 }
 
 function summarize(durations: number[]): PerformanceSample {
-  const sorted = [...durations].sort((left, right) => left - right);
+  const sorted = durations.toSorted((left, right) => left - right);
   const totalMs = durations.reduce((total, duration) => total + duration, 0);
   const p95Index = Math.ceil(sorted.length * 0.95) - 1;
 

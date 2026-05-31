@@ -81,7 +81,7 @@ export class AuthStrategyRegistry {
       );
     }
 
-    const token = requirement as InjectionToken<AuthStrategyContract>;
+    const token = requirement;
     if (!token || typeof token.name !== "string") {
       throw new TypeError(
         `Invalid auth requirement for ${describeRoute(route)}. ` +
@@ -98,7 +98,7 @@ export class AuthStrategyRegistry {
   }
 
   private availableStrategies(): string {
-    return [...this.names.keys()].sort(compareAlphabetically).join(", ") ||
+    return [...this.names.keys()].toSorted(compareAlphabetically).join(", ") ||
       "none";
   }
 }
@@ -122,7 +122,7 @@ function assertAuthStrategyToken(
 
 function strategyName(strategy: InjectionToken<AuthStrategyContract>): string {
   const configuredName = getAuthStrategyMetadata(strategy)?.name;
-  if (configuredName !== undefined && configuredName.trim() === "") {
+  if (configuredName?.trim() === "") {
     throw new TypeError(
       `Auth strategy ${strategy.name} has an empty strategy name. Use a non-empty @AuthStrategy({ name }) value.`,
     );

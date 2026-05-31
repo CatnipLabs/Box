@@ -14,7 +14,7 @@ function createEventDecorator(options: EventOptions) {
       throw new TypeError("@Event can only decorate classes");
     }
 
-    markEvent(target as EventConstructor, options);
+    markEvent(target, options);
   };
 }
 

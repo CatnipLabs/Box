@@ -186,7 +186,9 @@ class DiProducer extends Producer<DiEvent> {}
 
 @Consumer({ event: DiEvent })
 class DiConsumer extends Consumer<DiEvent> {
-  public handle(_event: DiEvent): void {}
+  public handle(event: DiEvent): void {
+    assertEquals(event instanceof DiEvent, true);
+  }
 }
 
 Deno.test("DI validation: producers may inject services only", () => {
@@ -209,7 +211,9 @@ Deno.test("DI validation: producers may inject services only", () => {
 Deno.test("DI validation: consumers may inject services only", () => {
   @Consumer({ event: DiEvent, deps: [UsersRepository] })
   class InvalidConsumer extends Consumer<DiEvent> {
-    public handle(_event: DiEvent): void {}
+    public handle(event: DiEvent): void {
+      assertEquals(event instanceof DiEvent, true);
+    }
   }
 
   assertThrows(
@@ -269,7 +273,9 @@ Deno.test("DI validation: producers and consumers may inject services", () => {
       super();
     }
 
-    public handle(_event: DiEvent): void {}
+    public handle(event: DiEvent): void {
+      assertEquals(event instanceof DiEvent, true);
+    }
   }
 
   const app = createApp({

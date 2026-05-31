@@ -21,5 +21,4 @@ function createAuthStrategyDecorator(
   };
 }
 
-export const AuthStrategy =
-  createAuthStrategyDecorator as AuthStrategyDecorator;
+export const AuthStrategy: AuthStrategyDecorator = createAuthStrategyDecorator;

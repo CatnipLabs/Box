@@ -100,7 +100,9 @@ Deno.test("Messaging integration: consumers fail closed without queue runtime", 
 
 Deno.test("Messaging integration: undecorated consumers fail at startup", () => {
   class UndecoratedConsumer extends Consumer<OrderCreatedEvent> {
-    public handle(_event: OrderCreatedEvent): void {}
+    public handle(event: OrderCreatedEvent): void {
+      assertEquals(event instanceof OrderCreatedEvent, true);
+    }
   }
 
   assertThrows(

@@ -192,9 +192,9 @@ function withoutUndefined<T extends Record<string, unknown>>(value: T): T {
 }
 
 function toOpenApiPath(path: string): string {
-  return path.replaceAll(/:([A-Za-z0-9_]+)/g, "{$1}");
+  return path.replaceAll(/:(\w+)/g, "{$1}");
 }
 
 function extractPathParams(path: string): string[] {
-  return [...path.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) => match[1]);
+  return [...path.matchAll(/:(\w+)/g)].map((match) => match[1]);
 }

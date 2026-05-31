@@ -127,21 +127,21 @@ function toKebabCase(value: string): string {
 function isAsciiUppercase(value: string | undefined): boolean {
   if (value === undefined) return false;
 
-  const code = value.charCodeAt(0);
+  const code = value.codePointAt(0) ?? 0;
   return code >= 65 && code <= 90;
 }
 
 function isAsciiLowercaseOrDigit(value: string | undefined): boolean {
   if (value === undefined) return false;
 
-  const code = value.charCodeAt(0);
+  const code = value.codePointAt(0) ?? 0;
   return (code >= 97 && code <= 122) || (code >= 48 && code <= 57);
 }
 
 function isAsciiLowercase(value: string | undefined): boolean {
   if (value === undefined) return false;
 
-  const code = value.charCodeAt(0);
+  const code = value.codePointAt(0) ?? 0;
   return code >= 97 && code <= 122;
 }
 
@@ -195,7 +195,7 @@ function enrichRouteOptions(
 function inferParamsSchema(
   path: string,
 ): z.ZodObject<Record<string, z.ZodString>> | undefined {
-  const entries = [...path.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) =>
+  const entries = [...path.matchAll(/:(\w+)/g)].map((match) =>
     [
       match[1],
       z.string(),

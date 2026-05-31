@@ -27,7 +27,7 @@ const sourceDefinitionKeywords = new Set([
 ]);
 
 function isIdentifierCharacter(character: string): boolean {
-  const code = character.charCodeAt(0);
+  const code = character.codePointAt(0) ?? 0;
 
   return character === "_" ||
     (code >= 48 && code <= 57) ||
@@ -142,7 +142,7 @@ Deno.test({
       }
     }
 
-    assertEquals(forbiddenEntries.sort(compareAlphabetically), []);
+    assertEquals(forbiddenEntries.toSorted(compareAlphabetically), []);
   },
 });
 
@@ -165,7 +165,7 @@ Deno.test({
       }
     }
 
-    assertEquals(forbiddenDirectories.sort(compareAlphabetically), []);
+    assertEquals(forbiddenDirectories.toSorted(compareAlphabetically), []);
   },
 });
 

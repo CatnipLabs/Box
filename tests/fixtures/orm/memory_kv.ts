@@ -44,7 +44,7 @@ export class MemoryKv implements KvStore {
     await Promise.resolve();
     const matchingRecords = [...this.values.entries()]
       .filter(([, record]) => matchesPrefix(record.key, options.prefix))
-      .sort(([left], [right]) => left.localeCompare(right));
+      .toSorted(([left], [right]) => left.localeCompare(right));
 
     for (const [, record] of matchingRecords) {
       yield {

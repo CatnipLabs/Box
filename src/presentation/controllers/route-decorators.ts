@@ -14,7 +14,7 @@ export function Route(
   options?: RouteOptions,
 ): RouteDecoratorFunction {
   return (
-    value: (input: never) => unknown,
+    value: (this: unknown, input: unknown) => unknown,
     context: ClassMethodDecoratorContext,
   ): void => {
     if (context.kind !== "method") {
@@ -29,7 +29,7 @@ export function Route(
           method,
           path,
           context.name,
-          (ctx) => value.call(this, createRouteInput(ctx) as never),
+          (ctx) => Reflect.apply(value, this, [createRouteInput(ctx)]),
           options,
         ),
       );

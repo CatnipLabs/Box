@@ -17,7 +17,9 @@ class OrderCreatedProducer extends Producer<OrderCreatedEvent> {}
 
 @Consumer({ event: OrderCreatedEvent })
 class OrderCreatedConsumer extends Consumer<OrderCreatedEvent> {
-  public handle(_event: OrderCreatedEvent): void {}
+  public handle(event: OrderCreatedEvent): void {
+    assert(event instanceof OrderCreatedEvent);
+  }
 }
 
 Deno.test("Messaging metadata: Event stores stable name and event defaults", () => {

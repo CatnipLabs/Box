@@ -30,9 +30,9 @@ export class ProducerBase<TEvent extends EventBase = EventBase> {
       );
     }
 
-    const event: TEvent = input instanceof EventBase
-      ? input as TEvent
-      : new this.eventConstructor(input as never) as TEvent;
+    const event = input instanceof EventBase
+      ? input
+      : new this.eventConstructor(input as never);
 
     return await this.dispatcher(event, { ...this.defaultOptions, ...options });
   }

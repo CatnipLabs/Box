@@ -83,7 +83,7 @@ export class Router {
     if (allowedMethods.size > 0) {
       return {
         error: methodNotAllowed(),
-        allowedMethods: [...allowedMethods].sort(compareAlphabetically),
+        allowedMethods: [...allowedMethods].toSorted(compareAlphabetically),
       };
     }
 

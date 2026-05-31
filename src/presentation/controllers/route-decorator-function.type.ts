@@ -1,4 +1,6 @@
 export type RouteDecoratorFunction = (
-  value: (this: unknown, input: never) => unknown,
+  value: {
+    bivarianceHack(this: unknown, input: unknown): unknown;
+  }["bivarianceHack"],
   context: ClassMethodDecoratorContext,
 ) => void;
